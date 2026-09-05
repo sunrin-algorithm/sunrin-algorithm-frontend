@@ -46,7 +46,24 @@ function Figure({ value, suffix }: { value: number; suffix: string }) {
 
 export default function About() {
   return (
-    <Section id="about" n="01" label="소개">
+    <Section
+      id="about"
+      n="01"
+      label="소개"
+      bleed={
+        <dl className="stats">
+          {ABOUT.stats.map((stat) => (
+            <div className="stat" key={stat.cap}>
+              <dt className="sr-only">{stat.cap}</dt>
+              <dd>
+                <Figure value={stat.value} suffix={stat.suffix} />
+                <p className="cap pixel">{stat.cap}</p>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      }
+    >
       <p className="about-lead line">
         <span className="line-i">{ABOUT.lead}</span>
       </p>
@@ -56,18 +73,6 @@ export default function About() {
           <p key={p}>{p}</p>
         ))}
       </div>
-
-      <dl className="stats">
-        {ABOUT.stats.map((stat) => (
-          <div className="stat" key={stat.cap}>
-            <dt className="sr-only">{stat.cap}</dt>
-            <dd>
-              <Figure value={stat.value} suffix={stat.suffix} />
-              <p className="cap pixel">{stat.cap}</p>
-            </dd>
-          </div>
-        ))}
-      </dl>
     </Section>
   )
 }
