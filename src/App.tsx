@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import About from './components/About'
+import Act1 from './components/Act1'
 import Activities from './components/Activities'
 import Contact from './components/Contact'
 import Contest from './components/Contest'
 import Corners from './components/Corners'
 import Curriculum from './components/Curriculum'
-import Hero from './components/Hero'
 import { ScrollTrigger, initSmoothScroll, scrollToId } from './lib/motion'
 
 export default function App() {
@@ -27,7 +27,7 @@ export default function App() {
     <>
       <Corners open={sheetOpen} onOpenChange={setSheetOpen} />
       <main inert={sheetOpen || undefined}>
-        <Hero />
+        <Act1 />
         <About />
         <Activities />
         <Curriculum />

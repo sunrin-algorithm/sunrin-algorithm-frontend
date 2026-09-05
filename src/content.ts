@@ -6,25 +6,18 @@ export const NAV = [
   { id: 'contact', n: '05', label: '연락' },
 ] as const
 
-/** The DFS walk of the hero tree spells this out, one glyph per visited node. */
-export const HERO_GLYPHS = [...'알고리즘연구부SHARC']
-
-export const HERO = {
-  eyebrow: 'SUNRIN INTERNET HIGH SCHOOL · ALGORITHM RESEARCH CLUB · EST. 2015',
-  intro:
-    '알고리즘 문제 해결과 이산수학을 파고드는 선린인터넷고등학교 자율동아리. 2015년부터 매주 문제를 붙잡고 앉아 있습니다.',
-  headline: '알고리즘연구부',
-}
+/** Recomputed, not hardcoded — so "N년째" never quietly goes stale. */
+const YEARS_SINCE_FOUNDING = new Date().getFullYear() - 2015
 
 export const ABOUT = {
   lead: 'SHARC는 알고리즘 문제 해결과 이산수학 같은 컴퓨터과학을 다루고 연구하는 선린인터넷고등학교의 자율동아리입니다.',
   paragraphs: [
-    '2015년에 개설되어 10년째 이어지고 있습니다. 그 사이 이 교실을 거쳐 간 부원들은 대회 수상자로, 개발자로, 그리고 다시 이 교실의 강사로 돌아왔습니다.',
+    `2015년에 개설되어 ${YEARS_SINCE_FOUNDING}년째 이어지고 있습니다. 그 사이 이 교실을 거쳐 간 부원들은 개발자로, 그리고 다시 이 교실의 강사로 돌아왔습니다.`,
     '교내 알고리즘 대회인 천하제일 코딩 대회를 주관하고, 알고리즘 분야 전문 강사님과 졸업 선배를 초청해 수업과 멘토링을 진행합니다.',
   ],
   stats: [
     { value: 2015, suffix: '', cap: '동아리 개설' },
-    { value: 10, suffix: '년+', cap: '끊기지 않고 이어온 활동' },
+    { value: YEARS_SINCE_FOUNDING, suffix: '년+', cap: '끊기지 않고 이어온 활동' },
     { value: 1, suffix: '회/년', cap: '천하제일 코딩 대회 주관' },
   ],
 }
@@ -40,7 +33,7 @@ export const ACTIVITIES = [
   },
   {
     title: '교내 대회 주관',
-    body: '천하제일 코딩 대회의 문제 출제부터 검수, 채점, 운영까지 부원들이 직접 맡습니다.',
+    body: '천하제일 코딩 대회의 문제 출제부터 채점까지 부원들이 직접 맡습니다.',
   },
   {
     title: '선배·외부 강사 멘토링',
@@ -70,8 +63,8 @@ export const CONTEST = {
   titleHead: '천하제일',
   titleTail: '코딩 대회',
   paragraphs: [
-    '알연부가 매년 주관하는 교내 알고리즘 문제 해결 대회입니다. 최대 3명이 한 팀을 이루고, 출제부터 채점까지 부원들이 직접 맡습니다.',
-    '알고리즘 경험이 없어도 괜찮습니다. 첫 참가에서 한 문제를 붙잡고 세 시간을 보낸 사람이 이듬해 출제진이 되기도 합니다.',
+    '알고리즘연구부가 매년 주관하는 교내 알고리즘 문제 해결 대회입니다. 최대 3명이 한 팀을 이루고, 출제부터 채점까지 부원들이 직접 맡습니다.',
+    '알고리즘 경험이 없더라도 한번쯤 참가해보는 것을 추천합니다.',
   ],
   facts: [
     ['형식', '팀당 최대 3명'],
@@ -94,5 +87,6 @@ export const CONTACT = {
 }
 
 export const FOOTER = {
+  mark: '알고리즘연구부',
   lines: ['SUNRIN INTERNET HIGH SCHOOL', 'ALGORITHM RESEARCH CLUB', '© 2026 SHARC'],
 }

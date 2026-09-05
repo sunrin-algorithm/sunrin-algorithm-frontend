@@ -167,7 +167,7 @@ body {
   padding-inline: var(--gutter);
 }
 
-.hero,
+.act1,
 .section,
 .footer {
   /* Clears the fixed .corners bar so a hash deep-link doesn't land underneath it. */
@@ -245,6 +245,16 @@ body {
 
 .corners > * {
   pointer-events: auto;
+}
+
+/* Act1 hides the nav for its own run and hands it back at SETTLE. */
+.corners {
+  transition: opacity 0.5s ease;
+}
+
+html.act1-live .corners {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .brand-corner {
@@ -391,89 +401,134 @@ body {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   hero
+   act1 — pinned merge-sort intro
    ───────────────────────────────────────────────────────────── */
-.hero {
-  --hl: clamp(4.5rem, 20.5vw, 21rem);
-  /* the headline is meant to run off the bottom edge of the first screen */
-  min-height: calc(100svh + var(--hl) * 0.26);
-  display: flex;
-  flex-direction: column;
-  padding-top: clamp(4.5rem, 11vh, 7rem);
-}
-
-.hero-stage {
-  flex: 1;
-  min-height: min(52vh, 30rem);
+.act1 {
+  --act1-vh: 400;
+  height: calc(var(--act1-vh) * 1vh);
   position: relative;
 }
 
-.hero-stage svg {
-  /* absolute, or the percentage height collapses to the svg's intrinsic ratio */
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  overflow: visible;
-}
-
-.hero-foot {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: flex-end;
-  gap: 2rem;
-  padding-block: 1.1rem 0.9rem;
-  border-top: var(--rule) solid var(--line);
-}
-
-.hero-foot .intro {
-  max-width: 36ch;
-  font-size: clamp(0.875rem, 1.05vw, 1rem);
-  line-height: 1.55;
-  color: var(--muted);
-  margin-top: 0.55rem;
-}
-
-.hero-foot .intro strong {
-  color: var(--ink);
-  font-weight: 500;
-}
-
-.hero-hint {
-  align-self: flex-end;
-  white-space: nowrap;
-}
-
-.hero-headline {
-  overflow: hidden;
-  height: 0.8em;
-  font-size: var(--hl);
-  font-weight: 700;
-  letter-spacing: -0.05em;
-  line-height: 0.9;
-  white-space: nowrap;
-  margin-top: auto;
-}
-
-.hero-headline span {
-  display: block;
-  will-change: transform;
+.act1-static {
+  height: auto;
+  padding-block: clamp(6rem, 16vh, 10rem) clamp(3rem, 8vh, 5rem);
 }
 
 @media (max-width: 780px) {
-  .hero-foot {
-    grid-template-columns: 1fr;
-    align-items: flex-start;
-    gap: 0.9rem;
-  }
-
-  .hero-stage {
-    min-height: min(46vh, 26rem);
+  .act1 {
+    --act1-vh: 260;
   }
 }
 
+.act1-pin {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.act1-cover {
+  position: absolute;
+  inset: 0;
+  background: var(--brand);
+  z-index: 1;
+}
+
+.act1-title-group {
+  position: absolute;
+  left: 50%;
+  top: 38%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  text-align: center;
+}
+
+.act1-static .act1-title-group {
+  position: static;
+  transform: none;
+}
+
+.act1-mark {
+  width: clamp(9rem, 22vw, 16rem);
+  color: #fff;
+  opacity: 0;
+}
+
+.act1-static .act1-mark {
+  color: var(--ink);
+  width: clamp(7rem, 16vw, 11rem);
+  opacity: 1;
+}
+
+.act1-ko {
+  font-size: clamp(1.1rem, 2.4vw, 1.75rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #fff;
+  opacity: 0;
+}
+
+.act1-static .act1-ko {
+  color: var(--ink);
+  opacity: 1;
+}
+
+.act1-frame,
+.act1-boxes {
+  position: absolute;
+  inset-inline: var(--gutter);
+  top: 68%;
+  transform: translateY(-50%);
+  height: clamp(3.5rem, 9vw, 6rem);
+}
+
+.act1-frame {
+  border: var(--rule) solid var(--line);
+  opacity: 0;
+  z-index: 1;
+}
+
+.act1-boxes {
+  z-index: 2;
+  display: flex;
+  opacity: 0;
+}
+
+.act1-box {
+  flex: 1 1 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  white-space: nowrap;
+  border-inline-end: var(--rule) solid var(--line-soft);
+}
+
+.act1-box:last-child {
+  border-inline-end: 0;
+}
+
+.act1-box .glyph {
+  font-family: var(--pixel-mono);
+  font-size: clamp(0.75rem, 1.6vw, 1rem);
+  color: var(--ink);
+}
+
+.act1-hint {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(2rem, 6vh, 3.5rem);
+  transform: translateX(-50%);
+  z-index: 2;
+  color: #fff;
+  opacity: 0;
+}
+
 /* ─────────────────────────────────────────────────────────────
-   tree viz
+   activity tree edges — shared by Activities' own DFS tree
    ───────────────────────────────────────────────────────────── */
 .tree-edge {
   stroke: var(--line);
@@ -484,50 +539,6 @@ body {
 .tree-edge.is-walked {
   stroke: var(--point);
   stroke-width: 1.5;
-}
-
-.tree-node circle {
-  fill: var(--paper);
-  stroke: var(--node-idle);
-  stroke-width: 1;
-  transition: stroke 0.25s ease, fill 0.25s ease;
-}
-
-.tree-node text.glyph {
-  font-family: var(--sans);
-  font-weight: 600;
-  fill: var(--node-idle);
-  text-anchor: middle;
-  dominant-baseline: central;
-  transition: fill 0.25s ease;
-}
-
-.tree-node.is-visited circle {
-  stroke: var(--brand);
-}
-
-.tree-node.is-visited text.glyph {
-  fill: var(--ink);
-}
-
-.tree-node.is-active circle {
-  fill: var(--point);
-  stroke: var(--point);
-}
-
-.tree-node.is-active text.glyph {
-  fill: #fff;
-}
-
-.tree-node text.order {
-  font-family: var(--pixel-mono);
-  fill: var(--point);
-  text-anchor: middle;
-  opacity: 0;
-}
-
-.tree-node.is-visited text.order {
-  opacity: 1;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -1130,6 +1141,15 @@ body {
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 2rem;
   align-items: flex-end;
+}
+
+.footer-mark {
+  grid-column: 1 / -1;
+  font-size: clamp(3rem, 13vw, 11rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+  color: var(--ink);
 }
 
 .footer .logo-full {

@@ -27,6 +27,9 @@ export default function Contact() {
       </Section>
 
       <footer className="footer shell">
+        <p className="footer-mark" aria-hidden="true">
+          {FOOTER.mark}
+        </p>
         {/* masked so the logo inherits the theme's brand colour */}
         <div className="logo-full" role="img" aria-label="SHARC 알고리즘연구부 로고" />
         <div className="meta pixel">
