@@ -106,3 +106,10 @@ export function buildTree(glyphs: readonly string[]): { nodes: TreeNode[]; edges
 
   return { nodes, edges }
 }
+
+/** The ancestor chain of `id`, root first — i.e. the DFS call stack at `id`. */
+export function pathToRoot(id: number): number[] {
+  const out: number[] = []
+  for (let i: number | null = id; i !== null; i = parentOf(i)) out.unshift(i)
+  return out
+}

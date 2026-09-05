@@ -124,7 +124,7 @@ export default function DpGrid({ rows, cols, cells }: Props) {
         ) : (
           <span>
             dp[i][j] = dp[i−1][j] + dp[i][j−1] − dp[i−1][j−1] + w(i,j)
-            <span className="dp-hover-hint">
+            <span className="hover-hint">
               {' '}
               — 칸에 커서를 올리면 이 칸이 어디에서 왔는지 표시됩니다
             </span>

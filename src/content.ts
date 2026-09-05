@@ -48,6 +48,12 @@ export const ACTIVITIES = [
   },
 ]
 
+/**
+ * The two interior nodes of the activity tree: ACTIVITIES[0..1] hang off the
+ * first branch, [2..3] off the second.
+ */
+export const ACTIVITY_BRANCHES = ['배우기', '나누기'] as const
+
 export const CURRICULUM = {
   rows: ['1학기 초', '1학기 중반', '2학기'],
   cols: ['C++', '자료구조', '알고리즘', '기출·대회', '멘토링'],

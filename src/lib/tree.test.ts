@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { bfsOrder, buildTree, dfsOrder, inOrder } from './tree.ts'
+import { bfsOrder, buildTree, dfsOrder, inOrder, pathToRoot } from './tree.ts'
 
 test('bfs walks level by level', () => {
   assert.deepEqual(bfsOrder(12), [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])
@@ -41,4 +41,10 @@ test('glyphs land so that the dfs walk spells the source string', () => {
 
   // each edge is walked exactly when its child is visited
   assert.ok(edges.every((e) => e.visitOrder === nodes[e.to].visitOrder))
+})
+
+test('path to root reads the call stack from the root down', () => {
+  assert.deepEqual(pathToRoot(0), [0])
+  assert.deepEqual(pathToRoot(6), [0, 2, 6])
+  assert.deepEqual(pathToRoot(10), [0, 1, 4, 10])
 })

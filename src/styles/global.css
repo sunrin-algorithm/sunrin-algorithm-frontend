@@ -606,27 +606,134 @@ body {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   activities — cards are the leaves of a DFS expansion
+   activities — the cards are the leaves of a real tree
    ───────────────────────────────────────────────────────────── */
-.activity-root {
-  display: inline-flex;
+.activity-stack {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
-  padding-bottom: clamp(1.75rem, 4vw, 3rem);
+  padding-bottom: clamp(1.5rem, 3vw, 2.25rem);
   color: var(--muted);
 }
 
-.activity-root .dot {
+.activity-stack .dot {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--point);
+  background: var(--node-idle);
   flex: none;
+  transition: background-color 0.3s ease;
+}
+
+.activity-stack .dot.is-on {
+  background: var(--point);
+}
+
+.activity-stack .key {
+  color: var(--point);
+}
+
+/* Frames read as one call chain: 활동 › 배우기 › 정규 수업 */
+.activity-stack .frame + .frame::before {
+  content: '›';
+  margin-right: 0.5rem;
+  color: var(--node-idle);
+}
+
+.activity-stack .frame:last-child {
+  color: var(--ink);
+}
+
+.activity-tree {
+  position: relative;
+  padding-top: clamp(9rem, 13vw, 12rem);
+}
+
+/* Plain pixel coordinates — no viewBox, so 1 user unit is 1 CSS pixel. */
+.activity-edges {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.activity-edges .tree-edge {
+  transition: stroke-dashoffset 0.5s cubic-bezier(0.2, 0.7, 0.2, 1), stroke 0.25s ease,
+    stroke-width 0.25s ease;
+}
+
+.tree-edge.is-path {
+  stroke: var(--brand);
+  stroke-width: 1.5;
+}
+
+/* While a path is lit, the rest of the tree steps back so the route reads. */
+.activity-edges:has(.is-path) .tree-edge:not(.is-path) {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+/* The dot is the node; the label hangs off it so the measured point stays exact. */
+.activity-node {
+  position: absolute;
+  width: 11px;
+  height: 11px;
+  margin: -6px 0 0 -6px;
+  border-radius: 50%;
+  border: var(--rule) solid var(--node-idle);
+  background: var(--paper);
+  transition: border-color 0.25s ease, background-color 0.25s ease;
+}
+
+.activity-node.is-visited {
+  border-color: var(--brand);
+}
+
+.activity-node.is-path {
+  background: var(--point);
+  border-color: var(--point);
+}
+
+.activity-node .tag {
+  position: absolute;
+  left: calc(100% + 0.55rem);
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  font-family: var(--pixel);
+  font-size: 12px;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.35s ease, color 0.25s ease;
+}
+
+.activity-node.is-visited .tag {
+  opacity: 1;
+}
+
+.activity-node.is-path .tag {
+  color: var(--ink);
+}
+
+.activity-node .tag i {
+  font-style: normal;
+  color: var(--point);
+}
+
+/* The left branch labels outward, away from the edges leaving the node. */
+.activity-node.side-l .tag {
+  left: auto;
+  right: calc(100% + 0.55rem);
 }
 
 .activity-list {
+  position: relative;
+  z-index: 1;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   border-top: var(--rule) solid var(--line);
   border-left: var(--rule) solid var(--line);
 }
@@ -634,15 +741,25 @@ body {
 .activity-item {
   border-right: var(--rule) solid var(--line);
   border-bottom: var(--rule) solid var(--line);
-  padding: clamp(1.25rem, 2.4vw, 2rem);
+  padding: clamp(1.1rem, 1.8vw, 1.6rem);
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
-  min-height: clamp(13rem, 22vw, 17rem);
-  transition: background-color 0.3s ease;
+  min-height: clamp(14rem, 21vw, 18rem);
+  /* opaque so the edges stop cleanly at the card boundary */
+  background: var(--paper);
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.5s ease, transform 0.55s cubic-bezier(0.2, 0.8, 0.2, 1),
+    background-color 0.3s ease;
 }
 
-.activity-item:hover {
+.activity-item.is-visited {
+  opacity: 1;
+  transform: none;
+}
+
+.activity-item.is-path {
   background: var(--line-soft);
 }
 
@@ -659,7 +776,7 @@ body {
 }
 
 .activity-item h3 {
-  font-size: clamp(1.15rem, 1.9vw, 1.6rem);
+  font-size: clamp(1.1rem, 1.7vw, 1.5rem);
   font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1.25;
@@ -672,13 +789,43 @@ body {
   line-height: 1.6;
 }
 
-@media (max-width: 760px) {
+/* Narrow screens run the same traversal down a rail on the left, git-graph style. */
+@media (max-width: 1000px) {
+  .activity-tree {
+    padding-top: clamp(5.5rem, 12vw, 7rem);
+    padding-left: 3.5rem;
+  }
+
   .activity-list {
     grid-template-columns: 1fr;
+    gap: 1.1rem;
+    border: 0;
   }
 
   .activity-item {
-    min-height: 10.5rem;
+    border: var(--rule) solid var(--line);
+    min-height: 0;
+  }
+
+  /* Room for the second branch node between the two subtrees. */
+  .activity-item:nth-child(3) {
+    margin-top: 4rem;
+  }
+
+  /* The rail has no room on the left, so every tag hangs off the right. */
+  .activity-node.side-l .tag {
+    left: calc(100% + 0.55rem);
+    right: auto;
+  }
+}
+
+@media (max-width: 520px) {
+  .activity-tree {
+    padding-left: 2.75rem;
+  }
+
+  .activity-node .tag {
+    font-size: 11px;
   }
 }
 
@@ -779,7 +926,7 @@ body {
 
 /* Touch devices have no cursor to hover with. */
 @media (hover: none) {
-  .dp-hover-hint {
+  .hover-hint {
     display: none;
   }
 }
