@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <title>SHARC — 선린인터넷고등학교 알고리즘연구부</title>
+    <meta
+      name="description"
+      content="알고리즘 문제 해결과 이산수학을 다루는 선린인터넷고등학교 자율동아리. 2015년 개설, 천하제일 코딩 대회 주관."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="SHARC — 선린인터넷고등학교 알고리즘연구부" />
+    <meta
+      property="og:description"
+      content="알고리즘 문제 해결과 이산수학을 다루는 선린인터넷고등학교 자율동아리. 2015년 개설, 천하제일 코딩 대회 주관."
+    />
+    <meta property="og:image" content="/logo.svg" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+    />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri/dist/galmuri.css" />
+
+    <script>
+      // Set theme before first paint so the page never flashes the wrong one.
+      try {
+        var saved = localStorage.getItem('sharc-theme')
+        var theme =
+          saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+        document.documentElement.dataset.theme = theme
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
