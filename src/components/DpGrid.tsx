@@ -50,7 +50,7 @@ export default function DpGrid({ rows, cols, cells }: Props) {
     const trigger = ScrollTrigger.create({
       trigger: el,
       start: 'top 78%',
-      end: 'bottom 80%',
+      end: 'center center',
       scrub: 0.35,
       onUpdate: (self) => {
         const next = filledCount(order.length, self.progress)

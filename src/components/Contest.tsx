@@ -23,7 +23,7 @@ function TeamViz() {
     if (!el || reduceMotion()) return
 
     const timeline = gsap.timeline({
-      scrollTrigger: { trigger: el, start: 'top 85%', once: true },
+      scrollTrigger: { trigger: el, start: 'top 85%', end: 'center center', scrub: 0.4 },
     })
     // fromTo, not from: StrictMode remounts and from() would read the
     // already-zeroed opacity as its end value.
@@ -78,7 +78,17 @@ function TeamViz() {
 
 export default function Contest() {
   return (
-    <Section id="contest" n="04" label="천코대">
+    <Section
+      id="contest"
+      n="04"
+      label="천코대"
+      bleed={
+        <figure className="team-figure">
+          <TeamViz />
+          <figcaption className="pixel-mono">{CONTEST.graphNote}</figcaption>
+        </figure>
+      }
+    >
       <h2 className="contest-title">
         <span className="line">
           <span className="line-i">
@@ -91,23 +101,19 @@ export default function Contest() {
       </h2>
 
       <div className="contest-cols">
-        <div>
+        <div className="contest-text">
           {CONTEST.paragraphs.map((p) => (
             <p key={p}>{p}</p>
           ))}
-          <ul className="contest-facts pixel">
-            {CONTEST.facts.map(([k, v]) => (
-              <li key={k}>
-                <span>{k}</span>
-                <span>{v}</span>
-              </li>
-            ))}
-          </ul>
         </div>
-        <figure className="team-figure">
-          <TeamViz />
-          <figcaption className="pixel-mono">{CONTEST.graphNote}</figcaption>
-        </figure>
+        <ul className="contest-facts pixel">
+          {CONTEST.facts.map(([k, v]) => (
+            <li key={k}>
+              <span>{k}</span>
+              <span>{v}</span>
+            </li>
+          ))}
+        </ul>
       </div>
     </Section>
   )

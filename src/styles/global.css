@@ -4,10 +4,13 @@
 :root {
   --brand: #4d7ce3;
   --point: #2aa1fe;
+  /* --point is 2.48:1 on --paper — fine for strokes/fills, not for text.
+     --point-text is a darkened stand-in kept only for color: declarations. */
+  --point-text: #0d6fbe;
 
   --paper: #f4f3ef;
   --ink: #14161a;
-  --muted: #6b7078;
+  --muted: #676c74;
   --line: rgba(20, 22, 26, 0.16);
   --line-soft: rgba(20, 22, 26, 0.08);
   --node-idle: rgba(20, 22, 26, 0.22);
@@ -25,6 +28,7 @@
   --paper: #0b0f1a;
   --ink: #e8ebf0;
   --muted: #8892a4;
+  --point-text: #2aa1fe;
   --line: rgba(232, 235, 240, 0.18);
   --line-soft: rgba(232, 235, 240, 0.09);
   --node-idle: rgba(232, 235, 240, 0.26);
@@ -163,9 +167,24 @@ body {
   padding-inline: var(--gutter);
 }
 
+.hero,
+.section,
+.footer {
+  /* Clears the fixed .corners bar so a hash deep-link doesn't land underneath it. */
+  scroll-margin-top: 5.5rem;
+}
+
 .section {
-  padding-block: clamp(6rem, 14vh, 11rem);
-  border-top: var(--rule) solid var(--line);
+  padding-block: clamp(6rem, 12vh, 9rem);
+}
+
+.section-bleed {
+  grid-column: 4 / -1;
+  margin-top: clamp(3rem, 6vh, 5rem);
+}
+
+.section-bleed:has(> .curriculum-table) {
+  grid-column: 2 / -1;
 }
 
 .section-grid {
@@ -188,7 +207,7 @@ body {
 }
 
 .section-index .num {
-  color: var(--point);
+  color: var(--point-text);
 }
 
 .section-body {
@@ -197,7 +216,8 @@ body {
 
 @media (max-width: 900px) {
   .section-index,
-  .section-body {
+  .section-body,
+  .section-bleed {
     grid-column: 1 / -1;
   }
 
@@ -267,7 +287,7 @@ body {
 }
 
 .nav-links a .n {
-  color: var(--point);
+  color: var(--point-text);
   margin-right: 0.3em;
 }
 
@@ -281,6 +301,11 @@ body {
 }
 
 .theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: 0.5rem;
+  margin-inline: -0.5rem;
   font-family: var(--pixel);
   font-size: 0.6875rem;
   letter-spacing: 0.06em;
@@ -299,6 +324,10 @@ body {
 /* mobile index overlay */
 .index-trigger {
   display: none;
+  align-items: center;
+  min-height: 44px;
+  padding-inline: 0.5rem;
+  margin-inline: -0.5rem;
   font-family: var(--pixel);
   font-size: 0.6875rem;
   letter-spacing: 0.06em;
@@ -326,7 +355,7 @@ body {
 .index-sheet a .n {
   font-family: var(--pixel);
   font-size: 0.75rem;
-  color: var(--point);
+  color: var(--point-text);
   vertical-align: super;
   margin-right: 0.5rem;
   letter-spacing: 0.06em;
@@ -357,7 +386,7 @@ body {
   }
 
   .index-trigger {
-    display: block;
+    display: inline-flex;
   }
 }
 
@@ -410,25 +439,9 @@ body {
   font-weight: 500;
 }
 
-.hero-readout {
-  text-align: right;
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  color: var(--muted);
-  min-width: 17rem;
-}
-
-.hero-readout .out {
+.hero-hint {
+  align-self: flex-end;
   white-space: nowrap;
-}
-
-.hero-readout .val {
-  color: var(--ink);
-}
-
-.hero-readout .expr {
-  color: var(--point);
 }
 
 .hero-headline {
@@ -452,18 +465,6 @@ body {
     grid-template-columns: 1fr;
     align-items: flex-start;
     gap: 0.9rem;
-  }
-
-  .hero-readout {
-    text-align: left;
-    min-width: 0;
-    flex-flow: row wrap;
-    column-gap: 1.1rem;
-    row-gap: 0.3rem;
-  }
-
-  .hero-readout > span {
-    white-space: nowrap;
   }
 
   .hero-stage {
@@ -553,7 +554,6 @@ body {
 }
 
 .stats {
-  margin-top: clamp(3rem, 6vw, 5rem);
   border-top: var(--rule) solid var(--line);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -581,7 +581,7 @@ body {
   font-size: 0.4em;
   letter-spacing: -0.01em;
   margin-left: 0.15em;
-  color: var(--point);
+  color: var(--point-text);
 }
 
 .stat .cap {
@@ -631,7 +631,7 @@ body {
 }
 
 .activity-stack .key {
-  color: var(--point);
+  color: var(--point-text);
 }
 
 /* Frames read as one call chain: 활동 › 배우기 › 정규 수업 */
@@ -720,7 +720,7 @@ body {
 
 .activity-node .tag i {
   font-style: normal;
-  color: var(--point);
+  color: var(--point-text);
 }
 
 /* The left branch labels outward, away from the edges leaving the node. */
@@ -733,14 +733,12 @@ body {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  border-top: var(--rule) solid var(--line);
-  border-left: var(--rule) solid var(--line);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: clamp(3.5rem, 6vw, 5rem) clamp(1.5rem, 3vw, 2.5rem);
 }
 
 .activity-item {
-  border-right: var(--rule) solid var(--line);
-  border-bottom: var(--rule) solid var(--line);
+  border: var(--rule) solid var(--line);
   padding: clamp(1.1rem, 1.8vw, 1.6rem);
   display: flex;
   flex-direction: column;
@@ -772,7 +770,7 @@ body {
 }
 
 .activity-item .head .visit {
-  color: var(--point);
+  color: var(--point-text);
 }
 
 .activity-item h3 {
@@ -933,16 +931,12 @@ body {
 
 .dp-legend b {
   font-weight: inherit;
-  color: var(--point);
+  color: var(--point-text);
 }
 
 .dp-legend > span:first-child {
   flex: 1;
   min-width: 20rem;
-}
-
-.curriculum-table {
-  margin-top: clamp(2rem, 4vw, 3.25rem);
 }
 
 .curriculum-note {
@@ -1005,24 +999,32 @@ body {
   margin-top: clamp(2.5rem, 5vw, 4rem);
   display: grid;
   grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
-  gap: clamp(2rem, 5vw, 5rem);
+  gap: clamp(2rem, 4vw, 3.5rem);
   align-items: start;
 }
 
-.contest-cols p {
+.contest-text p {
   color: var(--muted);
-  max-width: 44ch;
 }
 
-.contest-cols p + p {
+.contest-text p + p {
   margin-top: 1.1rem;
 }
 
 .contest-facts {
-  margin-top: 2rem;
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
+}
+
+@media (max-width: 700px) {
+  .contest-cols {
+    grid-template-columns: 1fr;
+  }
+
+  .contest-facts {
+    margin-top: 2rem;
+  }
 }
 
 .contest-facts li {
@@ -1035,7 +1037,7 @@ body {
 
 .contest-facts li span:first-child {
   min-width: 5.5rem;
-  color: var(--point);
+  color: var(--point-text);
 }
 
 .team-figure {
@@ -1076,11 +1078,6 @@ body {
   dominant-baseline: central;
 }
 
-@media (max-width: 820px) {
-  .contest-cols {
-    grid-template-columns: 1fr;
-  }
-}
 
 /* ─────────────────────────────────────────────────────────────
    contact
@@ -1119,11 +1116,11 @@ body {
 }
 
 .contact-link:hover {
-  color: var(--point);
+  color: var(--point-text);
 }
 
 .contact-link:hover .go {
-  color: var(--point);
+  color: var(--point-text);
   transform: translateX(0.4rem);
 }
 

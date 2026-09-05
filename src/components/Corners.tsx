@@ -1,57 +1,46 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import type { MouseEvent } from 'react'
 import { NAV } from '../content'
 import { scrollToId, setScrollLocked } from '../lib/motion'
+import { useActiveSection } from '../lib/active'
 import ThemeToggle from './ThemeToggle'
 import Wordmark from './Wordmark'
 
 const SECTION_IDS = NAV.map((s) => s.id)
 
-/** Which section owns the middle band of the viewport right now. */
-function useScrollSpy(ids: readonly string[]) {
-  const [active, setActive] = useState<string | null>(null)
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) setActive(entry.target.id)
-        }
-      },
-      { rootMargin: '-45% 0px -50% 0px' },
-    )
-
-    for (const id of ids) {
-      const el = document.getElementById(id)
-      if (el) observer.observe(el)
-    }
-    return () => observer.disconnect()
-  }, [ids])
-
-  return active
+type Props = {
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }
 
-export default function Corners() {
-  const [sheetOpen, setSheetOpen] = useState(false)
-  const active = useScrollSpy(SECTION_IDS)
+export default function Corners({ open, onOpenChange }: Props) {
+  const active = useActiveSection(SECTION_IDS)
+  const closeRef = useRef<HTMLButtonElement>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
-    setScrollLocked(sheetOpen)
-    if (!sheetOpen) return
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setSheetOpen(false)
+    setScrollLocked(open)
+    if (!open) return
+    closeRef.current?.focus()
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onOpenChange(false)
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [sheetOpen])
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      triggerRef.current?.focus()
+    }
+  }, [open, onOpenChange])
 
   const jump = (e: MouseEvent, id: string) => {
     e.preventDefault()
-    setSheetOpen(false)
+    onOpenChange(false)
     scrollToId(id)
+    // Lenis owns the scroll position, so the URL has to be updated by hand.
+    history.replaceState(null, '', id === 'top' ? location.pathname : `#${id}`)
   }
 
   return (
     <>
-      <div className="corners">
+      <div className="corners" inert={open || undefined}>
         <a
           className="brand-corner"
           href="#top"
@@ -79,19 +68,20 @@ export default function Corners() {
           <ThemeToggle />
           <button
             type="button"
+            ref={triggerRef}
             className="index-trigger"
-            aria-expanded={sheetOpen}
-            onClick={() => setSheetOpen(true)}
+            aria-expanded={open}
+            onClick={() => onOpenChange(true)}
           >
             INDEX
           </button>
         </div>
       </div>
 
-      {sheetOpen && (
+      {open && (
         <div className="index-sheet" role="dialog" aria-modal="true" aria-label="섹션 인덱스">
           <ThemeToggle className="sheet-theme" />
-          <button type="button" className="close" onClick={() => setSheetOpen(false)}>
+          <button type="button" ref={closeRef} className="close" onClick={() => onOpenChange(false)}>
             CLOSE
           </button>
           {NAV.map((item) => (

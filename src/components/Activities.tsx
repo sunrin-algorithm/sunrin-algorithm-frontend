@@ -13,7 +13,6 @@ const N = 7
 const WALK = dfsOrder(N)
 const ORDER = new Map(WALK.map((id, k) => [id, k + 1]))
 const EDGES = [1, 2, 3, 4, 5, 6].map((id) => ({ from: parentOf(id) as number, to: id }))
-const STEP = 300
 
 /** Only the fixed 7-node shape can be drawn; any other count falls back to a plain grid. */
 const DRAW = ACTIVITIES.length === 4
@@ -64,12 +63,17 @@ export default function Activities() {
       pt[1] = { x: gut * 0.56, y: head * 0.74 }
       pt[2] = { x: gut * 0.56, y: r[2].top - w.top - (r[2].top - r[1].bottom) * 0.5 }
     } else {
+      // Both rows share one column midline, so root/branch1/branch2 all sit on
+      // it too — their edges degenerate to straight verticals that run down
+      // the empty column-gap, never crossing a card.
       r.forEach((c, i) => {
         pt[3 + i] = { x: c.left - w.left + c.width / 2, y: c.top - w.top }
       })
-      pt[1] = { x: (pt[3].x + pt[4].x) / 2, y: head * 0.58 }
-      pt[2] = { x: (pt[5].x + pt[6].x) / 2, y: head * 0.58 }
-      pt[0] = { x: (pt[1].x + pt[2].x) / 2, y: head * 0.1 }
+      const centerX = (pt[3].x + pt[4].x) / 2
+      const rowGapY = (r[0].bottom + r[2].top) / 2 - w.top
+      pt[1] = { x: centerX, y: head * 0.58 }
+      pt[2] = { x: centerX, y: rowGapY }
+      pt[0] = { x: centerX, y: head * 0.1 }
     }
 
     setLayout((prev) =>
@@ -97,20 +101,16 @@ export default function Activities() {
       return
     }
 
-    const timers: number[] = []
+    // The walk plays out as the section scrolls past, not on a timer.
     const trigger = ScrollTrigger.create({
       trigger: el,
       start: 'top 78%',
-      once: true,
-      onEnter: () => {
-        for (let k = 1; k <= N; k++) timers.push(window.setTimeout(() => setVisited(k), k * STEP))
-      },
+      end: 'center center',
+      scrub: 0.4,
+      onUpdate: (self) => setVisited(Math.round(self.progress * N)),
     })
 
-    return () => {
-      timers.forEach(clearTimeout)
-      trigger.kill()
-    }
+    return () => trigger.kill()
   }, [])
 
   const done = visited >= N
