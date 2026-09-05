@@ -72,7 +72,7 @@ export const CONTEST = {
     ['대상', '선린인터넷고등학교 재학생 누구나'],
     ['주기', '매년 1회 · 알고리즘연구부 주관'],
   ],
-  graphNote: 'K₃ — 세 명이 서로 전부 연결된 팀',
+  graphNote: 'K₃ — 세 명으로 이루어진 팀',
 }
 
 export const CONTACT = {

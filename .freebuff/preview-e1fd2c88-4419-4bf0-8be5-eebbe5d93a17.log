@@ -1,0 +1,8 @@
+
+> sunrin-algorithm-frontend@0.1.0 dev
+> vite --port 5173 --strictPort --host 127.0.0.1
+
+
+  VITE v7.3.6  ready in 540 ms
+
+  ➜  Local:   http://127.0.0.1:5173/
