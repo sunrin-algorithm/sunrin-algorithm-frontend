@@ -10,7 +10,11 @@ export const NAV = [
 const YEARS_SINCE_FOUNDING = new Date().getFullYear() - 2015
 
 export const ABOUT = {
-  lead: 'SHARC는 알고리즘 문제 해결과 이산수학 같은 컴퓨터과학을 다루고 연구하는 선린인터넷고등학교의 자율동아리입니다.',
+  lead: {
+    pre: 'SHARC는 알고리즘 문제 해결과 이산수학 같은 컴퓨터과학을 다루고 ',
+    chip: '연구 활동',
+    post: '을 하는 선린인터넷고등학교의 자율동아리입니다.',
+  },
   paragraphs: [
     `2015년에 개설되어 ${YEARS_SINCE_FOUNDING}년째 이어지고 있습니다. 그 사이 이 교실을 거쳐 간 부원들은 개발자로, 그리고 다시 이 교실의 강사로 돌아왔습니다.`,
     '교내 알고리즘 대회인 천하제일 코딩 대회를 주관하고, 알고리즘 분야 전문 강사님과 졸업 선배를 초청해 수업과 멘토링을 진행합니다.',

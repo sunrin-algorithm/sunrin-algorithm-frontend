@@ -65,7 +65,11 @@ export default function About() {
       }
     >
       <p className="about-lead line">
-        <span className="line-i">{ABOUT.lead}</span>
+        <span className="line-i">
+          {ABOUT.lead.pre}
+          <span className="chip-seed">{ABOUT.lead.chip}</span>
+          {ABOUT.lead.post}
+        </span>
       </p>
 
       <div className="about-body">

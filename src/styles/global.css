@@ -554,6 +554,11 @@ html.act1-live .corners {
   max-width: 24ch;
 }
 
+.chip-seed {
+  color: var(--point-text);
+  font-weight: 700;
+}
+
 .about-body {
   margin-top: clamp(2rem, 4vw, 3.25rem);
   display: grid;
