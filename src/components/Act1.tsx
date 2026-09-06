@@ -4,19 +4,16 @@ import {
   GH,
   GLYPHS,
   GW,
-  SCRAMBLED_A,
-  SCRAMBLED_B,
   cameraFor,
   leafBoxRect,
   leafEdges,
   leafGlyphCenter,
-  leafRowBounds,
   midBoxRect,
   midEdges,
   midGlyphCenter,
-  projectRect,
   rootBoxRect,
   rootGlyphCenter,
+  scrambleChar,
 } from '../lib/act1'
 import type { Rect, WorldEdge } from '../lib/act1'
 import { gsap, reduceMotion, setScrollLocked } from '../lib/motion'
@@ -45,10 +42,14 @@ type Props = {
   skipLock?: boolean
 }
 
+/** Per-glyph delay fraction for the scramble-lock ripple (glyph 0 finishes first). */
+const SCRAMBLE_STAGGER = 0.025
+
 /**
- * Plays once per visit, no skip: two fixed scrambles collapse into a hull box,
- * split into 12 leaf boxes, then merge 2 stages (per-word, then whole-string)
- * down to a root box that settles into the resting title.
+ * Plays once per visit, no skip: 12 leaf boxes punch in with flickering
+ * placeholder glyphs that lock left-to-right, then merge in 2 stages
+ * (per-word, then whole-string) down to a root box that settles into the
+ * resting title.
  */
 export default function Act1({ skipLock }: Props) {
   const [reduced] = useState(reduceMotion)
@@ -58,10 +59,6 @@ export default function Act1({ skipLock }: Props) {
     const el = root.current
     if (reduced || !el) return
 
-    const cover = el.querySelector<HTMLElement>('.act1-cover')
-    const hull = el.querySelector<HTMLElement>('.act1-hull')
-    const rscha = el.querySelector<HTMLElement>('.act1-rscha')
-    const ko = el.querySelector<HTMLElement>('.act1-koscramble')
     const camera = el.querySelector<HTMLElement>('.act1-camera')
     const leafBoxes = [...el.querySelectorAll<HTMLElement>('.act1-leafbox')]
     const midBoxes = [...el.querySelectorAll<HTMLElement>('.act1-midbox')]
@@ -70,7 +67,7 @@ export default function Act1({ skipLock }: Props) {
     const leafEdgeEls = [...el.querySelectorAll<SVGPathElement>('.act1-edge-leaf')]
     const midEdgeEls = [...el.querySelectorAll<SVGPathElement>('.act1-edge-mid')]
     const progress = el.querySelector<HTMLElement>('.act1-progress')
-    if (!cover || !hull || !rscha || !ko || !camera || !rootBox || !progress) return
+    if (!camera || !rootBox || !progress) return
     if (glyphs.length !== 12 || leafBoxes.length !== 12 || midBoxes.length !== 2) return
 
     let finished = false
@@ -93,14 +90,14 @@ export default function Act1({ skipLock }: Props) {
     const cam0 = cameraFor(0, vw, vh)
     const cam1 = cameraFor(1, vw, vh)
     const cam2 = cameraFor(2, vw, vh)
-    const hullEnd = projectRect(leafRowBounds(), cam0)
 
-    gsap.set(camera, { x: 0, y: 0, scale: 1, transformOrigin: '0 0' })
+    gsap.set(camera, { x: cam0.x, y: cam0.y, scale: cam0.scale, transformOrigin: '0 0' })
     gsap.set([...leafBoxes, ...midBoxes, rootBox], { opacity: 0, scale: 0.6, transformOrigin: 'center' })
     gsap.set([...leafEdgeEls, ...midEdgeEls], { strokeDashoffset: 1 })
     glyphs.forEach((glyph, g) => {
       const c = leafGlyphCenter(g)
       gsap.set(glyph, { left: c.x - GW / 2, top: c.y - GH / 2, opacity: 0 })
+      glyph.textContent = scrambleChar(GLYPHS[g], 0, g)
     })
 
     const tl = gsap.timeline()
@@ -109,32 +106,31 @@ export default function Act1({ skipLock }: Props) {
       progress.textContent = `ACT I ${String(Math.round(tl.progress() * 100)).padStart(3, '0')}`
     })
 
-    // 0.0–0.9 — full-bleed brand cover, RSCHA punches in.
-    tl.fromTo(rscha, { opacity: 0, scale: 0.9 }, { opacity: 1, scale: 1, duration: 0.9, ease: 'back.out(1.6)' }, 0)
-      // 0.9–1.7 — shrinks, moves up.
-      .to(rscha, { top: '30%', fontSize: '2.75rem', duration: 0.8, ease: 'power2.inOut' }, 0.9)
-      // 1.5–2.1 — the Korean scramble joins below it.
-      .fromTo(ko, { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.6 }, 1.5)
-      // 2.1–2.7 — cover lifts, a hull box shrinks from full-bleed to the
-      // exact rect the leaf row is about to occupy.
-      .to(cover, { opacity: 0, duration: 0.6 }, 2.1)
-      .fromTo(
-        hull,
-        { left: 0, top: 0, width: vw, height: vh, opacity: 1 },
-        { left: hullEnd.x, top: hullEnd.y, width: hullEnd.w, height: hullEnd.h, duration: 0.6, ease: 'power2.inOut' },
-        2.1,
+    // 0.0–0.5 — 12 leaf boxes punch in where the split will land.
+    tl.to(leafBoxes, { opacity: 1, scale: 1, duration: 0.5, stagger: 0.03, ease: 'back.out(2)' }, 0)
+      .to(glyphs, { opacity: 1, duration: 0.4, stagger: 0.03 }, 0.1)
+      // 0.15–1.25 — placeholder glyphs flicker, then lock to their letter
+      // left to right, driven by a single scrub tween (no per-glyph timers).
+      .to(
+        { p: 0 },
+        {
+          p: 1,
+          duration: 1.1,
+          ease: 'none',
+          onUpdate: function () {
+            const p = (this.targets()[0] as { p: number }).p
+            glyphs.forEach((glyph, g) => {
+              const local = gsap.utils.clamp(0, 1, (p - g * SCRAMBLE_STAGGER) / (1 - 11 * SCRAMBLE_STAGGER))
+              glyph.textContent = scrambleChar(GLYPHS[g], local, g)
+            })
+          },
+        },
+        0.15,
       )
-      .to([rscha, ko], { opacity: 0, duration: 0.3 }, 2.5)
-      // 2.7–3.4 — hull hands off to the camera: 12 leaf boxes + glyphs fade
-      // in exactly where the hull ended up.
-      .to(hull, { opacity: 0, duration: 0.15 }, 2.7)
-      .set(camera, { x: cam0.x, y: cam0.y, scale: cam0.scale }, 2.7)
-      .to(leafBoxes, { opacity: 1, scale: 1, duration: 0.5, stagger: 0.03, ease: 'back.out(2)' }, 2.75)
-      .to(glyphs, { opacity: 1, duration: 0.4, stagger: 0.03 }, 2.85)
-      // 3.4–4.3 — stage 1: each word's leaves sort into their own mid box.
-      .to(camera, { x: cam1.x, y: cam1.y, scale: cam1.scale, duration: 0.9, ease: 'power2.inOut' }, 3.4)
-      .to(leafEdgeEls, { strokeDashoffset: 0, duration: 0.6, stagger: 0.02 }, 3.4)
-      .to(midBoxes, { opacity: 1, scale: 1, duration: 0.4, stagger: 0.15, ease: 'back.out(2)' }, 3.6)
+      // 1.25–2.15 — stage 1: each word's leaves sort into their own mid box.
+      .to(camera, { x: cam1.x, y: cam1.y, scale: cam1.scale, duration: 0.9, ease: 'power2.inOut' }, 1.25)
+      .to(leafEdgeEls, { strokeDashoffset: 0, duration: 0.6, stagger: 0.02 }, 1.25)
+      .to(midBoxes, { opacity: 1, scale: 1, duration: 0.4, stagger: 0.15, ease: 'back.out(2)' }, 1.45)
       .to(
         glyphs,
         {
@@ -144,12 +140,12 @@ export default function Act1({ skipLock }: Props) {
           stagger: 0.04,
           ease: 'power2.inOut',
         },
-        3.5,
+        1.35,
       )
-      // 4.3–5.1 — stage 2: the two words concatenate into the root box.
-      .to(camera, { x: cam2.x, y: cam2.y, scale: cam2.scale, duration: 0.8, ease: 'power2.inOut' }, 4.3)
-      .to(midEdgeEls, { strokeDashoffset: 0, duration: 0.5, stagger: 0.05 }, 4.3)
-      .to(rootBox, { opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(2)' }, 4.5)
+      // 2.15–2.95 — stage 2: the two words concatenate into the root box.
+      .to(camera, { x: cam2.x, y: cam2.y, scale: cam2.scale, duration: 0.8, ease: 'power2.inOut' }, 2.15)
+      .to(midEdgeEls, { strokeDashoffset: 0, duration: 0.5, stagger: 0.05 }, 2.15)
+      .to(rootBox, { opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(2)' }, 2.35)
       .to(
         glyphs,
         {
@@ -159,12 +155,12 @@ export default function Act1({ skipLock }: Props) {
           stagger: 0.045,
           ease: 'power2.inOut',
         },
-        4.3,
+        2.15,
       )
-      // 5.1–5.6 — boxes and edges dissolve, the merged title remains.
-      .to([...leafBoxes, ...midBoxes, rootBox], { opacity: 0, duration: 0.4 }, 5.1)
-      .to([...leafEdgeEls, ...midEdgeEls], { opacity: 0, duration: 0.3 }, 5.1)
-      .to(progress, { opacity: 0, duration: 0.3 }, 5.1)
+      // 2.95–3.35 — boxes and edges dissolve, the merged title remains.
+      .to([...leafBoxes, ...midBoxes, rootBox], { opacity: 0, duration: 0.4 }, 2.95)
+      .to([...leafEdgeEls, ...midEdgeEls], { opacity: 0, duration: 0.3 }, 2.95)
+      .to(progress, { opacity: 0, duration: 0.3 }, 2.95)
 
     return () => {
       clearTimeout(timeout)
@@ -192,14 +188,6 @@ export default function Act1({ skipLock }: Props) {
   return (
     <header className="act1" id="top" ref={root}>
       <h1 className="sr-only">SHARC — 선린인터넷고등학교 알고리즘연구부</h1>
-      <div className="act1-cover" />
-      <div className="act1-hull" />
-      <p className="act1-rscha" aria-hidden="true">
-        {SCRAMBLED_A}
-      </p>
-      <p className="act1-koscramble" aria-hidden="true">
-        {SCRAMBLED_B}
-      </p>
 
       <div className="act1-camera">
         <svg className="act1-edges" aria-hidden="true">

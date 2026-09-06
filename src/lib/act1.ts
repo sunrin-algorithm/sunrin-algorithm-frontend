@@ -69,10 +69,6 @@ export function cameraFor(level: Level, vw: number, vh: number): Camera {
   return { x: vw / 2, y: vh / 2 - (levelY(level) + GH / 2) * scale, scale }
 }
 
-export function projectRect(r: Rect, cam: Camera): Rect {
-  return { x: cam.x + r.x * cam.scale, y: cam.y + r.y * cam.scale, w: r.w * cam.scale, h: r.h * cam.scale }
-}
-
 export function leafBoxRect(slot: number): Rect {
   return { x: -LEAF_SPAN / 2 + slot * (GW + GAP), y: levelY(0), w: GW, h: GH }
 }
@@ -88,13 +84,6 @@ export function midBoxRect(which: 0 | 1): Rect {
 
 export function rootBoxRect(): Rect {
   return { x: -ROOT_SPAN / 2, y: levelY(2), w: ROOT_SPAN, h: GH }
-}
-
-/** Bounding rect of just the leaf boxes' first row (used to seed the hull-shrink target). */
-export function leafRowBounds(): Rect {
-  const first = leafBoxRect(0)
-  const last = leafBoxRect(11)
-  return { x: first.x, y: first.y, w: last.x + last.w - first.x, h: GH }
 }
 
 const cellCenter = (r: Rect) => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 })
@@ -134,4 +123,19 @@ export function midEdges(): WorldEdge[] {
     const a = midBoxRect(which)
     return { x1: a.x + a.w / 2, y1: a.y + a.h, x2: root.x + root.w / 2, y2: root.y }
   })
+}
+
+/** Flicker pool for the leaf glyphs before they lock to their final letter. */
+const SCRAMBLE_POOL = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789가나다라마바사아자차카타파하#@$%&*']
+
+/**
+ * `t` in [0,1): flickers through the pool, deterministic in `t` and `seed` so
+ * every render (and every test run) picks the same sequence. `t >= 1` locks
+ * to `final` for good.
+ */
+export function scrambleChar(final: string, t: number, seed: number): string {
+  if (t >= 1) return final
+  const step = Math.floor(Math.max(0, t) * 10)
+  const i = (seed * 7 + step * 13) % SCRAMBLE_POOL.length
+  return SCRAMBLE_POOL[i]
 }

@@ -58,8 +58,8 @@ function TeamViz() {
   }, [])
 
   // Handoff C: the 3 dp cells Curriculum's drain leaves standing fly here and
-  // land as this graph's 3 nodes, right as TeamViz's own entrance takes over
-  // (its trigger starts at the same 'top 85%' this one ends on).
+  // land as this graph's 3 nodes, right as TeamViz's own entrance (above)
+  // takes over.
   useEffect(() => {
     const el = svg.current
     if (!el || reduceMotion()) return
@@ -80,9 +80,9 @@ function TeamViz() {
 
     const trigger = ScrollTrigger.create({
       trigger: contest,
-      start: 'top 160%',
-      end: 'top 85%',
-      scrub: 0.4,
+      start: 'top 190%',
+      end: 'top 70%',
+      scrub: 0.6,
       onUpdate: (self) => {
         const p = self.progress
         if (p <= 0 || p >= 1) {
@@ -146,27 +146,24 @@ function TeamViz() {
 
 export default function Contest() {
   return (
-    <Section
-      id="contest"
-      n="04"
-      label="천코대"
-      bleed={
+    <Section id="contest" n="04" label="천코대">
+      <div className="contest-head">
+        <h2 className="contest-title">
+          <span className="line">
+            <span className="line-i">
+              <em>{CONTEST.titleHead}</em>
+            </span>
+          </span>
+          <span className="line">
+            <span className="line-i">{CONTEST.titleTail}</span>
+          </span>
+        </h2>
+
         <figure className="team-figure">
           <TeamViz />
           <figcaption className="pixel-mono">{CONTEST.graphNote}</figcaption>
         </figure>
-      }
-    >
-      <h2 className="contest-title">
-        <span className="line">
-          <span className="line-i">
-            <em>{CONTEST.titleHead}</em>
-          </span>
-        </span>
-        <span className="line">
-          <span className="line-i">{CONTEST.titleTail}</span>
-        </span>
-      </h2>
+      </div>
 
       <div className="contest-cols">
         <div className="contest-text">

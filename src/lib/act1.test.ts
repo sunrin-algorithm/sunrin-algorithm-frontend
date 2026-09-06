@@ -7,6 +7,7 @@ import {
   cameraFor,
   leafOrder,
   rowWidth,
+  scrambleChar,
 } from './act1.ts'
 
 test('GLYPHS is SHARC + 알고리즘연구부, 12 glyphs', () => {
@@ -46,5 +47,19 @@ test('camera keeps every level within [0.6, 0.98] of viewport width, growing per
       assert.ok(onScreen >= vw * 0.6, `level ${level} too small at ${vw}px`)
     }
     assert.ok(scales[0] < scales[1] && scales[1] < scales[2], `camera should zoom in per level at ${vw}px`)
+  }
+})
+
+test('scrambleChar locks to the final glyph once t reaches 1', () => {
+  for (let seed = 0; seed < 12; seed++) {
+    assert.equal(scrambleChar(GLYPHS[seed], 1, seed), GLYPHS[seed])
+  }
+})
+
+test('scrambleChar flickers through several pool characters before t=1', () => {
+  for (let seed = 0; seed < 12; seed++) {
+    const seen = new Set<string>()
+    for (let step = 0; step < 10; step++) seen.add(scrambleChar(GLYPHS[seed], step / 10, seed))
+    assert.ok(seen.size >= 8, `glyph ${seed} only flickered through ${seen.size} characters`)
   }
 })

@@ -404,8 +404,9 @@ html.act1-live .corners {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   act1 — RSCHA/고알즘리구부연 scramble collapses into a 12-glyph
-   merge tree (leaf -> per-word -> root), autoplays once, no skip
+   act1 — 12 leaf boxes punch in with flickering glyphs that lock
+   left to right, then merge (leaf -> per-word -> root), autoplays
+   once, no skip
    ───────────────────────────────────────────────────────────── */
 .act1 {
   position: relative;
@@ -437,44 +438,6 @@ html.act1-live .corners {
   font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--ink);
-}
-
-.act1-cover {
-  position: absolute;
-  inset: 0;
-  background: var(--brand);
-  z-index: 1;
-}
-
-.act1-hull {
-  position: absolute;
-  border: var(--rule) solid #fff;
-  z-index: 2;
-  opacity: 0;
-}
-
-.act1-rscha,
-.act1-koscramble {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 3;
-  margin: 0;
-  color: #fff;
-  font-family: var(--pixel-mono);
-  white-space: nowrap;
-  opacity: 0;
-}
-
-.act1-rscha {
-  font-size: clamp(2.5rem, 14vw, 9rem);
-  letter-spacing: 0.04em;
-}
-
-.act1-koscramble {
-  top: 66%;
-  font-size: clamp(1rem, 3vw, 1.75rem);
 }
 
 .act1-camera {
@@ -557,6 +520,9 @@ html.act1-live .corners {
 .chip-seed {
   color: var(--point-text);
   font-weight: 700;
+  padding: 0 0.15em;
+  border-radius: 2px;
+  transition: color 0.2s ease;
 }
 
 /* Handoff A's clone: About's chip flying to Activities' tree root. Sized and
@@ -783,8 +749,8 @@ html.act1-live .corners {
   position: relative;
   z-index: 1;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: clamp(3.5rem, 6vw, 5rem) clamp(1.5rem, 3vw, 2.5rem);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(3.5rem, 6vw, 5rem) clamp(1.25rem, 2.2vw, 2rem);
 }
 
 .activity-item {
@@ -1033,6 +999,24 @@ html.act1-live .corners {
 /* ─────────────────────────────────────────────────────────────
    contest
    ───────────────────────────────────────────────────────────── */
+.contest-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 18rem);
+  gap: clamp(1.5rem, 3vw, 3rem);
+  align-items: end;
+}
+
+@media (max-width: 900px) {
+  .contest-head {
+    grid-template-columns: 1fr;
+  }
+
+  .contest-head .team-figure {
+    max-width: 18rem;
+    margin-inline: auto;
+  }
+}
+
 .contest-title {
   font-size: clamp(2.5rem, 9.5vw, 8.5rem);
   font-weight: 700;

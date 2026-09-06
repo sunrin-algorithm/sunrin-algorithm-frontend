@@ -5,9 +5,6 @@ import { ScrollTrigger, reduceMotion } from '../lib/motion'
 import { dfsOrder, parentOf, pathToRoot } from '../lib/tree'
 import Section from './Section'
 
-/** Handoff A ("연구 활동" chip -> tree root) runs before the DFS walk starts. */
-const HANDOFF_END = 0.7
-
 /**
  * Seven nodes: a root, two branches, and the four cards as leaves — card `i` is
  * node `3 + i`. So the badges are real pre-order positions (03, 04, 06, 07) and
@@ -41,8 +38,8 @@ export default function Activities() {
   /**
    * The edges are measured off the real card rects, so the drawing follows
    * whatever the grid did. The reserved gutter is also what tells us which
-   * layout CSS picked: wide screens fan out downwards, narrow ones run the
-   * traversal down a rail on the left.
+   * layout CSS picked: wide screens fan out downwards over a single row of 4
+   * leaves, narrow ones run the traversal down a rail on the left.
    */
   const measure = useCallback(() => {
     const w = wrap.current?.getBoundingClientRect()
@@ -67,17 +64,14 @@ export default function Activities() {
       pt[1] = { x: gut * 0.56, y: head * 0.74 }
       pt[2] = { x: gut * 0.56, y: r[2].top - w.top - (r[2].top - r[1].bottom) * 0.5 }
     } else {
-      // Both rows share one column midline, so root/branch1/branch2 all sit on
-      // it too — their edges degenerate to straight verticals that run down
-      // the empty column-gap, never crossing a card.
+      // One row of 4 leaves: branch1 gathers cards 0-1, branch2 gathers 2-3,
+      // root sits above the midpoint of both branches.
       r.forEach((c, i) => {
         pt[3 + i] = { x: c.left - w.left + c.width / 2, y: c.top - w.top }
       })
-      const centerX = (pt[3].x + pt[4].x) / 2
-      const rowGapY = (r[0].bottom + r[2].top) / 2 - w.top
-      pt[1] = { x: centerX, y: head * 0.58 }
-      pt[2] = { x: centerX, y: rowGapY }
-      pt[0] = { x: centerX, y: head * 0.1 }
+      pt[1] = { x: (pt[3].x + pt[4].x) / 2, y: head * 0.62 }
+      pt[2] = { x: (pt[5].x + pt[6].x) / 2, y: head * 0.62 }
+      pt[0] = { x: (pt[1].x + pt[2].x) / 2, y: head * 0.18 }
     }
 
     setLayout((prev) =>
@@ -97,46 +91,97 @@ export default function Activities() {
     return () => ro.disconnect()
   }, [measure])
 
+  // The DFS walk plays out as the tree scrolls past — its own trigger, separate
+  // from Handoff A below since the two no longer share a single scroll range.
   useEffect(() => {
     const el = wrap.current
-    if (!el) return
-    if (reduceMotion()) {
-      setVisited(N)
+    if (!el || reduceMotion()) {
+      if (reduceMotion()) setVisited(N)
       return
     }
 
+    const trigger = ScrollTrigger.create({
+      trigger: el,
+      start: 'top 70%',
+      end: 'top -10%',
+      scrub: 0.5,
+      onUpdate: (self) => setVisited(Math.round(self.progress * N)),
+    })
+
+    return () => trigger.kill()
+  }, [])
+
+  // Handoff A: the "연구 활동" chip inside About's lead paragraph. The lead is
+  // pinned in place first for a short "지정" (designate) beat — a highlight
+  // wipe across the live chip, no clone yet — then released: the paragraph
+  // resumes its normal scroll while the chip decouples into a floating clone
+  // that holds at a fixed point and finally lands on the tree's root node.
+  useEffect(() => {
+    if (!DRAW || reduceMotion()) return
+    const lead = document.querySelector<HTMLElement>('.about-lead')
     const chip = document.querySelector<HTMLElement>('.chip-seed')
     const stage = document.getElementById('stage')
-    const rootNode = () => el.querySelector<HTMLElement>('[data-node="0"]')
+    const tree = wrap.current
+    const rootNode = () => tree?.querySelector<HTMLElement>('[data-node="0"]')
+    if (!lead || !chip || !stage || !tree) return
+
     let clone: HTMLElement | null = null
 
-    const releaseHandoff = () => {
+    const release = () => {
       clone?.remove()
       clone = null
-      if (chip) chip.style.visibility = ''
+      chip.style.background = ''
+      chip.style.color = ''
+      chip.style.visibility = ''
       const root = rootNode()
       if (root) root.style.visibility = ''
     }
 
-    // The walk plays out as the section scrolls past, not on a timer. The
-    // range is widened (was 'top 78%'/'center center') to leave room ahead of
-    // the walk for the chip -> root handoff.
-    const trigger = ScrollTrigger.create({
-      trigger: el,
-      start: 'top 92%',
-      end: 'top 12%',
-      scrub: 0.4,
+    // How long (in px of scroll) the pin holds, expressed as a fraction of the
+    // wider drive trigger's own range once that range is known.
+    const PIN_FRAC = 0.85
+    const pinPx = () => window.innerHeight * PIN_FRAC
+
+    const pin = ScrollTrigger.create({
+      trigger: lead,
+      start: 'center 45%',
+      end: () => `+=${pinPx()}`,
+      pin: true,
+      refreshPriority: 1,
+    })
+
+    const drive = ScrollTrigger.create({
+      trigger: lead,
+      start: 'center 45%',
+      endTrigger: tree,
+      end: 'top 25%',
+      scrub: 0.8,
       onUpdate: (self) => {
         const p = self.progress
-        setVisited(p < HANDOFF_END ? 0 : Math.round(((p - HANDOFF_END) / (1 - HANDOFF_END)) * N))
-
-        if (!DRAW || !chip || !stage) return
+        const span = self.end - self.start
+        const pinFrac = span > 0 ? Math.min(pinPx() / span, 0.5) : 0
         const root = rootNode()
+
         if (!root || p <= 0 || p >= 1) {
-          releaseHandoff()
+          release()
           return
         }
 
+        if (p < pinFrac) {
+          // Still pinned: a highlight wipe wakes the chip up in place.
+          clone?.remove()
+          clone = null
+          root.style.visibility = ''
+          chip.style.visibility = ''
+          const local = pinFrac > 0 ? p / pinFrac : 1
+          const pct = (local * 100).toFixed(1)
+          chip.style.background = `linear-gradient(to right, var(--point) ${pct}%, transparent ${pct}%)`
+          chip.style.color = local >= 0.98 ? '#fff' : ''
+          return
+        }
+
+        // Unpinned: the chip decouples into a clone and the text resumes
+        // scrolling underneath it.
         if (!clone) clone = cloneInto(stage, chip).clone
         clone.classList.add('handoff-chip')
         chip.style.visibility = 'hidden'
@@ -144,29 +189,22 @@ export default function Activities() {
 
         const vw = window.innerWidth
         const vh = window.innerHeight
-        // Measured every frame (not cached at trigger-enter) so the fly-in
-        // tracks the chip's real scroll position and the landing tracks the
-        // root node's — both are still moving while the page scrolls.
         const chipRect = rectOf(chip)
-        const big = centerRect(vw, vh, chipRect.w, chipRect.h)
         const dot = centerRect(vw, vh, 11, 11)
         const rootRect = rectOf(root)
 
-        let rect = big
+        let rect = chipRect
         let neon = 1
         let textFade = 1
-        if (p < 0.25) {
-          rect = lerpRect(chipRect, big, p / 0.25)
-          neon = p / 0.25
-          textFade = 0
-        } else if (p < 0.45) {
-          textFade = (p - 0.25) / 0.2
-        } else if (p < HANDOFF_END) {
-          rect = lerpRect(big, dot, (p - 0.45) / (HANDOFF_END - 0.45))
-        } else if (p < 0.92) {
+        if (p < 0.55) {
+          const t = (p - pinFrac) / (0.55 - pinFrac)
+          rect = lerpRect(chipRect, dot, t)
+          neon = Math.min(t / 0.4, 1)
+          textFade = Math.min(t / 0.7, 1)
+        } else if (p < 0.85) {
           rect = dot
         } else {
-          rect = lerpRect(dot, rootRect, (p - 0.92) / 0.08)
+          rect = lerpRect(dot, rootRect, (p - 0.85) / 0.15)
         }
 
         placeAt(clone, rect)
@@ -177,8 +215,9 @@ export default function Activities() {
     })
 
     return () => {
-      trigger.kill()
-      releaseHandoff()
+      pin.kill()
+      drive.kill()
+      release()
     }
   }, [])
 
