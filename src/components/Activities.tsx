@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ACTIVITIES, ACTIVITY_BRANCHES } from '../content'
+import { centerRect, cloneInto, lerpRect, placeAt, rectOf } from '../lib/handoff'
 import { ScrollTrigger, reduceMotion } from '../lib/motion'
 import { dfsOrder, parentOf, pathToRoot } from '../lib/tree'
 import Section from './Section'
+
+/** Handoff A ("연구 활동" chip -> tree root) runs before the DFS walk starts. */
+const HANDOFF_END = 0.7
 
 /**
  * Seven nodes: a root, two branches, and the four cards as leaves — card `i` is
@@ -101,16 +105,81 @@ export default function Activities() {
       return
     }
 
-    // The walk plays out as the section scrolls past, not on a timer.
+    const chip = document.querySelector<HTMLElement>('.chip-seed')
+    const stage = document.getElementById('stage')
+    const rootNode = () => el.querySelector<HTMLElement>('[data-node="0"]')
+    let clone: HTMLElement | null = null
+
+    const releaseHandoff = () => {
+      clone?.remove()
+      clone = null
+      if (chip) chip.style.visibility = ''
+      const root = rootNode()
+      if (root) root.style.visibility = ''
+    }
+
+    // The walk plays out as the section scrolls past, not on a timer. The
+    // range is widened (was 'top 78%'/'center center') to leave room ahead of
+    // the walk for the chip -> root handoff.
     const trigger = ScrollTrigger.create({
       trigger: el,
-      start: 'top 78%',
-      end: 'center center',
+      start: 'top 92%',
+      end: 'top 12%',
       scrub: 0.4,
-      onUpdate: (self) => setVisited(Math.round(self.progress * N)),
+      onUpdate: (self) => {
+        const p = self.progress
+        setVisited(p < HANDOFF_END ? 0 : Math.round(((p - HANDOFF_END) / (1 - HANDOFF_END)) * N))
+
+        if (!DRAW || !chip || !stage) return
+        const root = rootNode()
+        if (!root || p <= 0 || p >= 1) {
+          releaseHandoff()
+          return
+        }
+
+        if (!clone) clone = cloneInto(stage, chip).clone
+        clone.classList.add('handoff-chip')
+        chip.style.visibility = 'hidden'
+        root.style.visibility = 'hidden'
+
+        const vw = window.innerWidth
+        const vh = window.innerHeight
+        // Measured every frame (not cached at trigger-enter) so the fly-in
+        // tracks the chip's real scroll position and the landing tracks the
+        // root node's — both are still moving while the page scrolls.
+        const chipRect = rectOf(chip)
+        const big = centerRect(vw, vh, chipRect.w, chipRect.h)
+        const dot = centerRect(vw, vh, 11, 11)
+        const rootRect = rectOf(root)
+
+        let rect = big
+        let neon = 1
+        let textFade = 1
+        if (p < 0.25) {
+          rect = lerpRect(chipRect, big, p / 0.25)
+          neon = p / 0.25
+          textFade = 0
+        } else if (p < 0.45) {
+          textFade = (p - 0.25) / 0.2
+        } else if (p < HANDOFF_END) {
+          rect = lerpRect(big, dot, (p - 0.45) / (HANDOFF_END - 0.45))
+        } else if (p < 0.92) {
+          rect = dot
+        } else {
+          rect = lerpRect(dot, rootRect, (p - 0.92) / 0.08)
+        }
+
+        placeAt(clone, rect)
+        clone.style.color = `rgba(255,255,255,${1 - textFade})`
+        clone.style.boxShadow = `0 0 ${18 * neon}px ${6 * neon}px rgba(42,161,254,${0.55 * neon})`
+        clone.style.opacity = p < 0.92 ? '1' : String(1 - (p - 0.92) / 0.08)
+      },
     })
 
-    return () => trigger.kill()
+    return () => {
+      trigger.kill()
+      releaseHandoff()
+    }
   }, [])
 
   const done = visited >= N
@@ -169,6 +238,7 @@ export default function Activities() {
             {[0, 1, 2].map((id) => (
               <span
                 key={id}
+                data-node={id}
                 aria-hidden="true"
                 // The left branch labels leftwards, so no tag ever sits on an edge.
                 className={`activity-node${id === 1 ? ' side-l' : ''}${

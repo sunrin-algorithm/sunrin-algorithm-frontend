@@ -559,6 +559,21 @@ html.act1-live .corners {
   font-weight: 700;
 }
 
+/* Handoff A's clone: About's chip flying to Activities' tree root. Sized and
+   positioned imperatively per scroll frame — see Activities.tsx. */
+.handoff-chip {
+  position: absolute;
+  z-index: 31;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--point);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .about-body {
   margin-top: clamp(2rem, 4vw, 3.25rem);
   display: grid;
