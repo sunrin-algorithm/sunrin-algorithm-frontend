@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { CURRICULUM } from '../content'
-import { WALK_VH } from './Activities'
+import { WALK_VH, treeHoldStart } from './Activities'
 import { centerRect, cloneInto, lerpRect, placeAt, rectOf } from '../lib/handoff'
 import { ScrollTrigger, reduceMotion } from '../lib/motion'
 import DpGrid from './DpGrid'
@@ -24,8 +24,8 @@ export default function Curriculum() {
 
     const trigger = ScrollTrigger.create({
       trigger: contest,
-      start: 'top 190%',
-      end: 'top 70%',
+      start: 'top 110%',
+      end: 'top -10%',
       scrub: 0.6,
       onUpdate: (self) => {
         const next = Math.round(self.progress * (TOTAL_CELLS - SURVIVORS))
@@ -37,18 +37,18 @@ export default function Curriculum() {
   }, [])
 
   // Handoff B: Activities' "정규 수업" card becomes this section's calendar.
-  // Nothing is pinned — the tree, the copy and the rest of the page keep
-  // scrolling normally the whole way through. Only the clone is held, and it is
-  // held because its target is a fixed screen rect rather than a document one:
-  // it eases (slow, then quickening) out to the dead centre of the screen,
-  // stops there while everything else travels up past it, sheds its own text,
-  // and only starts growing once the calendar itself reaches the viewport.
+  // The card peels off the tree while the tree is still pinned, eases (slow,
+  // then quickening) out to the dead centre of the screen and stops there —
+  // held by a fixed screen rect, not by a pin, so the tree, the copy and the
+  // rest of the page keep travelling up past it. It sheds its own text on the
+  // way, then grows into the calendar, which pins for a short beat of its own
+  // so the box has something standing still to land on.
   useEffect(() => {
     const el = table.current
     if (!el || reduceMotion()) return
 
     const card = document.querySelector<HTMLElement>('.activity-item:first-child')
-    const treeRoot = document.querySelector<HTMLElement>('#activity [data-node="0"]')
+    const section = document.getElementById('activity')
     const stage = document.getElementById('stage')
     const grid = () => el.querySelector<HTMLElement>('.dp')
     if (!card || !stage) return
@@ -66,21 +66,56 @@ export default function Curriculum() {
       }
     }
 
-    /** Where the travel ends and the motionless hold begins. */
-    const MOVE_END = 0.34
+    /** Beat lengths in viewport heights: travel, resize, crossfade. */
+    const MOVE = 0.6
+    const GROW = 0.55
+    const FADE = 0.25
+
+    // 달력 아주 조금만 고정: just long enough for the box to finish becoming it.
+    const lock = ScrollTrigger.create({
+      trigger: el,
+      start: 'center center',
+      end: () => `+=${window.innerHeight * 0.4}`,
+      pin: true,
+      anticipatePin: 1,
+      refreshPriority: 1,
+    })
 
     const drive = ScrollTrigger.create({
-      // Anchored on the tree's root node, offset by the exact length of the DFS
-      // walk: the card cannot light up until the last branch has unfolded.
-      trigger: treeRoot ?? card,
-      start: () => `center center-=${window.innerHeight * WALK_VH}`,
-      endTrigger: el,
-      end: 'top 45%',
+      // Anchored on the activity section itself, never on anything inside the
+      // pinned tree -- a trigger inside a pin measures as a screen position.
+      // Deliberately wide; every boundary below is live geometry.
+      trigger: section ?? card,
+      start: 'top top',
+      end: () => `+=${window.innerHeight * 6}`,
       scrub: 0.8,
       onUpdate: (self) => {
         const p = self.progress
         const g = grid()
-        if (!g || p <= 0 || p >= 1) {
+        const span = self.end - self.start
+        if (!g || p <= 0 || span <= 0) {
+          release()
+          return
+        }
+
+        const vh = window.innerHeight
+        /** A document scroll offset as a fraction of this trigger's range. */
+        const at = (y: number) => (y - self.start) / span
+
+        // The card cannot peel off until the last branch of the walk has drawn.
+        const begin = at(treeHoldStart() + vh * WALK_VH)
+        if (!treeHoldStart() || p < begin) {
+          release()
+          return
+        }
+        const moveEnd = begin + (vh * MOVE) / span
+        // The landing is the calendar's own pin: the box finishes becoming the
+        // grid on the frame the grid stops moving.
+        const land = Math.min(at(lock.start), 0.999)
+        const grow = Math.max(land - (vh * GROW) / span, moveEnd + 0.01)
+        const gone = land + (vh * FADE) / span
+
+        if (p >= gone) {
           release()
           return
         }
@@ -94,41 +129,33 @@ export default function Curriculum() {
         const gridRect = rectOf(g)
         // Its own size, dead centre of the screen — a fixed screen rect, so the
         // box parks instead of being carried along by the scroll behind it.
-        const parked = centerRect(window.innerWidth, window.innerHeight, cardRect.w, cardRect.h)
-
-        // The resize is keyed to the calendar's arrival, not to a fixed cut:
-        // it begins at the scroll offset where the grid's top crosses the
-        // bottom of the viewport, as a fraction of this trigger's own range.
-        const span = self.end - self.start
-        const gridY = gridRect.y + window.scrollY - window.innerHeight
-        const raw = span > 0 ? (gridY - self.start) / span : 0.7
-        const resize = Math.min(Math.max(raw, MOVE_END + 0.08), 0.88)
+        const parked = centerRect(window.innerWidth, vh, cardRect.w, cardRect.h)
 
         let rect = parked
         let text = 1
         let gridFade = 0
-        if (p < MOVE_END) {
+        if (p < moveEnd) {
           // ease-in: crawls off the mark, then accelerates into the centre.
-          const t = p / MOVE_END
+          const t = (p - begin) / (moveEnd - begin)
           rect = lerpRect(cardRect, parked, t * t)
-        } else if (p < resize) {
+        } else if (p < grow) {
           // Parked and motionless; the card's own text dissolves off it over
           // the tail of the hold, so an empty lit box is what grows.
-          text = 1 - Math.min((p - MOVE_END) / (resize - MOVE_END) / 0.7, 1)
-        } else if (p < 0.94) {
-          rect = lerpRect(parked, gridRect, (p - resize) / (0.94 - resize))
+          text = 1 - Math.min((p - moveEnd) / (grow - moveEnd) / 0.7, 1)
+        } else if (p < land) {
+          rect = lerpRect(parked, gridRect, (p - grow) / (land - grow))
           text = 0
         } else {
           rect = gridRect
           text = 0
-          gridFade = (p - 0.94) / 0.06
+          gridFade = (p - land) / (gone - land)
         }
 
         placeAt(clone, rect)
         Array.from(clone.children).forEach((c) => {
           ;(c as HTMLElement).style.opacity = String(text)
         })
-        const neon = Math.min(p / (MOVE_END * 0.4), 1)
+        const neon = Math.min((p - begin) / ((moveEnd - begin) * 0.4), 1)
         clone.style.boxShadow = `0 0 ${18 * neon}px ${6 * neon}px rgba(42,161,254,${0.55 * neon})`
         clone.style.opacity = String(1 - gridFade)
         g.style.opacity = String(gridFade)
@@ -137,6 +164,7 @@ export default function Curriculum() {
 
     return () => {
       drive.kill()
+      lock.kill()
       release()
     }
   }, [])

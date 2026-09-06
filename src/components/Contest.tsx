@@ -80,8 +80,8 @@ function TeamViz() {
 
     const trigger = ScrollTrigger.create({
       trigger: contest,
-      start: 'top 190%',
-      end: 'top 70%',
+      start: 'top 110%',
+      end: 'top -10%',
       scrub: 0.6,
       onUpdate: (self) => {
         const p = self.progress

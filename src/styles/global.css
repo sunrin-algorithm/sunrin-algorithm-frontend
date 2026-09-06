@@ -258,12 +258,27 @@ body {
   }
 }
 
-/* Handoff B needs room after the tree has finished unfolding: the 정규 수업 card
-   flies out, parks lit at the centre of the screen, and only then does the
-   calendar arrive underneath it. That beat is pure scroll distance, so the
-   section buys it up front rather than pinning anything. */
+/* Handoff A parks the chip at the centre of the screen for a beat before the
+   tree arrives underneath it, and that beat is pure scroll distance. 소개 keeps
+   travelling up through it, so the gap is never empty. */
+#activity {
+  padding-top: 90vh;
+}
+
+/* And room after the calendar has formed before Handoff C starts draining it. */
 #curriculum {
-  padding-top: 150vh;
+  padding-bottom: 50vh;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* No handoffs run, so the runways would just be empty screens. */
+  #activity {
+    padding-top: clamp(6rem, 12vh, 9rem);
+  }
+
+  #curriculum {
+    padding-bottom: clamp(6rem, 12vh, 9rem);
+  }
 }
 
 @media (max-width: 900px) {
