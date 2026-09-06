@@ -19,12 +19,16 @@ export default function Corners({ open, onOpenChange }: Props) {
   const triggerRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
-    setScrollLocked(open)
+    // Only touch the lock when this sheet is actually open -- calling
+    // setScrollLocked(false) on the initial (closed) mount would stomp a
+    // lock some other component (Act1) is holding at the same time.
     if (!open) return
+    setScrollLocked(true)
     closeRef.current?.focus()
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onOpenChange(false)
     window.addEventListener('keydown', onKey)
     return () => {
+      setScrollLocked(false)
       window.removeEventListener('keydown', onKey)
       triggerRef.current?.focus()
     }

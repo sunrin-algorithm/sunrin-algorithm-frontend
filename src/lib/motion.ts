@@ -53,11 +53,49 @@ export function scrollToId(id: string) {
   else target.scrollIntoView({ behavior: 'auto', block: 'start' })
 }
 
+/*
+ * `overflow: hidden` alone doesn't hold: it stops scrollbars but not every
+ * input path (trackpad rubber-banding, and plain `scrollTo` calls, still move
+ * the page in some browsers). Block the inputs directly and snap back if
+ * anything slips through regardless of cause.
+ */
+const SCROLL_KEYS = new Set(['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' '])
+const preventDefault = (e: Event) => e.preventDefault()
+const blockScrollKeys = (e: KeyboardEvent) => {
+  if (SCROLL_KEYS.has(e.key)) e.preventDefault()
+}
+
+let inputBlocked = false
+let clampRaf = 0
+
+// The 'scroll' event doesn't reliably fire for every path that can move
+// scrollY (a bare `scrollTo` call moves it even under `overflow: hidden` in
+// some engines), so the clamp polls every frame instead of listening for it.
+const clampToTop = () => {
+  if (window.scrollX || window.scrollY) window.scrollTo(0, 0)
+  clampRaf = requestAnimationFrame(clampToTop)
+}
+
 export const setScrollLocked = (locked: boolean) => {
   pendingLock = locked
   document.body.style.overflow = locked ? 'hidden' : ''
   if (locked) lenis?.stop()
   else lenis?.start()
+
+  if (locked === inputBlocked) return
+  inputBlocked = locked
+  const captureOpt = { capture: true }
+  if (locked) {
+    window.addEventListener('wheel', preventDefault, { passive: false, capture: true })
+    window.addEventListener('touchmove', preventDefault, { passive: false, capture: true })
+    window.addEventListener('keydown', blockScrollKeys, { passive: false, capture: true })
+    clampRaf = requestAnimationFrame(clampToTop)
+  } else {
+    window.removeEventListener('wheel', preventDefault, captureOpt)
+    window.removeEventListener('touchmove', preventDefault, captureOpt)
+    window.removeEventListener('keydown', blockScrollKeys, captureOpt)
+    cancelAnimationFrame(clampRaf)
+  }
 }
 
 /** Mask-reveal every `.line > .line-i` inside `scope` when it scrolls in. */
