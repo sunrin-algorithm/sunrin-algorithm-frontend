@@ -27,13 +27,14 @@ export default function App() {
     <>
       <Corners open={sheetOpen} onOpenChange={setSheetOpen} />
       <main inert={sheetOpen || undefined}>
-        <Act1 />
+        <Act1 skipLock={Boolean(location.hash)} />
         <About />
         <Activities />
         <Curriculum />
         <Contest />
         <Contact />
       </main>
+      <div id="stage" />
     </>
   )
 }

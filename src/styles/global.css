@@ -46,6 +46,9 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* Act1's scroll lock toggles body overflow; without this the scrollbar's
+     width change reflows the page and shifts every ScrollTrigger measurement. */
+  scrollbar-gutter: stable;
 }
 
 body,
@@ -401,12 +404,14 @@ html.act1-live .corners {
 }
 
 /* ─────────────────────────────────────────────────────────────
-   act1 — pinned merge-sort intro
+   act1 — RSCHA/고알즘리구부연 scramble collapses into a 12-glyph
+   merge tree (leaf -> per-word -> root), autoplays once, no skip
    ───────────────────────────────────────────────────────────── */
 .act1 {
-  --act1-vh: 400;
-  height: calc(var(--act1-vh) * 1vh);
   position: relative;
+  height: 100svh;
+  overflow: hidden;
+  background: var(--paper);
 }
 
 .act1-static {
@@ -414,16 +419,24 @@ html.act1-live .corners {
   padding-block: clamp(6rem, 16vh, 10rem) clamp(3rem, 8vh, 5rem);
 }
 
-@media (max-width: 780px) {
-  .act1 {
-    --act1-vh: 260;
-  }
+.act1-static-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  text-align: center;
 }
 
-.act1-pin {
-  position: relative;
-  height: 100vh;
-  overflow: hidden;
+.act1-static-mark {
+  color: var(--ink);
+  width: clamp(7rem, 16vw, 11rem);
+}
+
+.act1-static-ko {
+  font-size: clamp(1.1rem, 2.4vw, 1.75rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--ink);
 }
 
 .act1-cover {
@@ -433,98 +446,87 @@ html.act1-live .corners {
   z-index: 1;
 }
 
-.act1-title-group {
+.act1-hull {
+  position: absolute;
+  border: var(--rule) solid #fff;
+  z-index: 2;
+  opacity: 0;
+}
+
+.act1-rscha,
+.act1-koscramble {
   position: absolute;
   left: 50%;
-  top: 38%;
+  top: 50%;
   transform: translate(-50%, -50%);
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.6rem;
-  text-align: center;
-}
-
-.act1-static .act1-title-group {
-  position: static;
-  transform: none;
-}
-
-.act1-mark {
-  width: clamp(9rem, 22vw, 16rem);
+  z-index: 3;
+  margin: 0;
   color: #fff;
+  font-family: var(--pixel-mono);
+  white-space: nowrap;
   opacity: 0;
 }
 
-.act1-static .act1-mark {
-  color: var(--ink);
-  width: clamp(7rem, 16vw, 11rem);
-  opacity: 1;
+.act1-rscha {
+  font-size: clamp(2.5rem, 14vw, 9rem);
+  letter-spacing: 0.04em;
 }
 
-.act1-ko {
-  font-size: clamp(1.1rem, 2.4vw, 1.75rem);
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: #fff;
-  opacity: 0;
+.act1-koscramble {
+  top: 66%;
+  font-size: clamp(1rem, 3vw, 1.75rem);
 }
 
-.act1-static .act1-ko {
-  color: var(--ink);
-  opacity: 1;
-}
-
-.act1-frame,
-.act1-boxes {
+.act1-camera {
   position: absolute;
-  inset-inline: var(--gutter);
-  top: 68%;
-  transform: translateY(-50%);
-  height: clamp(3.5rem, 9vw, 6rem);
+  left: 0;
+  top: 0;
+  z-index: 4;
 }
 
-.act1-frame {
-  border: var(--rule) solid var(--line);
-  opacity: 0;
-  z-index: 1;
-}
-
-.act1-boxes {
-  z-index: 2;
-  display: flex;
-  opacity: 0;
+.act1-edges {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  overflow: visible;
 }
 
 .act1-box {
-  flex: 1 1 0;
+  position: absolute;
+  box-sizing: border-box;
+  border: var(--rule) solid var(--line);
+}
+
+.act1-rootbox {
+  border-color: var(--point);
+}
+
+.act1-glyph {
+  position: absolute;
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: hidden;
-  white-space: nowrap;
-  border-inline-end: var(--rule) solid var(--line-soft);
-}
-
-.act1-box:last-child {
-  border-inline-end: 0;
-}
-
-.act1-box .glyph {
   font-family: var(--pixel-mono);
-  font-size: clamp(0.75rem, 1.6vw, 1rem);
+  font-size: 2.5rem;
   color: var(--ink);
 }
 
-.act1-hint {
+.act1-progress {
   position: absolute;
   left: 50%;
-  bottom: clamp(2rem, 6vh, 3.5rem);
+  bottom: clamp(1.5rem, 5vh, 3rem);
   transform: translateX(-50%);
-  z-index: 2;
-  color: #fff;
-  opacity: 0;
+  z-index: 5;
+  color: var(--muted);
+}
+
+#stage {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 30;
 }
 
 /* ─────────────────────────────────────────────────────────────

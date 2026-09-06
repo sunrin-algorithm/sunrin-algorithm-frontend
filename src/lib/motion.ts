@@ -11,11 +11,19 @@ export const reduceMotion = () =>
 
 let lenis: Lenis | null = null
 
+/**
+ * Act1 locks scroll before Lenis exists — its effect runs before App's
+ * (children mount before parents). This flag lets a lock requested early
+ * still apply the moment Lenis is actually created.
+ */
+let pendingLock = false
+
 /** Lenis drives the scroll position; GSAP's ticker drives Lenis. */
 export function initSmoothScroll(): () => void {
   if (reduceMotion()) return () => {}
 
   lenis = new Lenis({ lerp: 0.09, wheelMultiplier: 0.9 })
+  if (pendingLock) lenis.stop()
   lenis.on('scroll', ScrollTrigger.update)
 
   const raf = (time: number) => lenis?.raf(time * 1000)
@@ -38,6 +46,7 @@ export function scrollToId(id: string) {
 }
 
 export const setScrollLocked = (locked: boolean) => {
+  pendingLock = locked
   document.body.style.overflow = locked ? 'hidden' : ''
   if (locked) lenis?.stop()
   else lenis?.start()
