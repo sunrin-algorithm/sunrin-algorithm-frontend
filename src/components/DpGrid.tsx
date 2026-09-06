@@ -6,8 +6,6 @@ type Props = {
   rows: string[]
   cols: string[]
   cells: (string | null)[][]
-  /** How many of the most-recently-filled cells to hide, for Handoff C's drain. */
-  drain?: number
 }
 
 /** 2D prefix sum: how many topics you are carrying by the time you reach a cell. */
@@ -29,7 +27,7 @@ function prefixSums(cells: (string | null)[][]) {
 const term = (dp: number[][], row: number, col: number) =>
   row < 0 || col < 0 ? '0' : `${dp[row][col]}`
 
-export default function DpGrid({ rows, cols, cells, drain = 0 }: Props) {
+export default function DpGrid({ rows, cols, cells }: Props) {
   const wrap = useRef<HTMLDivElement>(null)
   const dp = useMemo(() => prefixSums(cells), [cells])
   const order = useMemo(() => antiDiagonalOrder(rows.length, cols.length), [rows, cols])
@@ -68,7 +66,6 @@ export default function DpGrid({ rows, cols, cells, drain = 0 }: Props) {
 
   const deps = hover ? dependencies(hover.row, hover.col) : []
   const depKeys = new Set(deps.map((d) => cellKey(d.row, d.col)))
-  const keep = order.length - drain
 
   return (
     <div ref={wrap}>
@@ -95,7 +92,7 @@ export default function DpGrid({ rows, cols, cells, drain = 0 }: Props) {
               </div>
               {cols.map((col, j) => {
                 const r = rank.get(cellKey(i, j)) as number
-                const isFilled = r < filled && r < keep
+                const isFilled = r < filled
                 const lit = hover?.row === i && hover?.col === j
                 const dep = depKeys.has(cellKey(i, j))
                 return (
@@ -105,7 +102,6 @@ export default function DpGrid({ rows, cols, cells, drain = 0 }: Props) {
                     key={col}
                     data-filled={isFilled ? 1 : 0}
                     data-base={cells[i][j] ? 0 : 1}
-                    data-rank={r}
                     onMouseEnter={() => setHover({ row: i, col: j })}
                     onMouseLeave={() => setHover(null)}
                   >

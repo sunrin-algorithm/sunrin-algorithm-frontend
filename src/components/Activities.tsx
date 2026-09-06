@@ -3,6 +3,7 @@ import { ACTIVITIES, ACTIVITY_BRANCHES } from '../content'
 import { centerRect, cloneInto, lerpRect, placeAt, rectOf } from '../lib/handoff'
 import { SETTLE_VH, ScrollTrigger, reduceMotion } from '../lib/motion'
 import { dfsOrder, parentOf, pathToRoot } from '../lib/tree'
+import { aboutHoldStart } from './About'
 import Section from './Section'
 
 /**
@@ -152,13 +153,11 @@ export default function Activities() {
     }
   }, [layout])
 
-  // Handoff A: the "연구 활동" chip inside About's lead paragraph. Nothing in
-  // 소개 is ever held — the section scrolls away normally the whole time. Only
-  // the chip is held, and only because it has become a clone on the fixed
-  // stage:
-  //   1. a highlight wipe crosses the live chip in place, still in its sentence;
+  // Handoff A: the "연구 활동" chip inside About's lead paragraph.
+  //   1. 소개 comes to its brief stop and a highlight wipe crosses the live
+  //      chip in place, still in its sentence, with nothing moving under it;
   //   2. it decouples into a clone, blows up, and flies to the centre of the
-  //      screen, where it parks while the rest of 소개 travels up past it;
+  //      screen, where it parks while 소개 lets go and travels up past it;
   //   3. it shrinks back down to a point, timed to land exactly as the tree's
   //      root reaches that same centre and the tree pins there.
   useEffect(() => {
@@ -192,28 +191,36 @@ export default function Activities() {
     const SHRINK = 0.5
 
     const drive = ScrollTrigger.create({
-      trigger: lead,
-      start: 'center 45%',
+      // The section, never the paragraph inside it: 소개's own pin is applied
+      // first, and anything inside a pin measures as a screen position.
       // Deliberately long. Every boundary below is a live document offset
       // converted into a fraction of this range, so the end only has to be
       // comfortably past the point where the tree takes over.
-      end: () => `+=${window.innerHeight * 3}`,
+      trigger: document.getElementById('about') ?? lead,
+      start: 'top top',
+      end: () => `+=${window.innerHeight * 4}`,
       scrub: 0.8,
       onUpdate: (self) => {
         const p = self.progress
-        if (p <= 0) {
+        const span = self.end - self.start
+        if (p <= 0 || span <= 0) {
           release()
           return
         }
 
         const vw = window.innerWidth
         const vh = window.innerHeight
-        const span = self.end - self.start
-        if (span <= 0) return
         /** A document scroll offset as a fraction of this trigger's range. */
         const at = (y: number) => (y - self.start) / span
 
-        const wipeEnd = (vh * WIPE) / span
+        // Nothing lights up until 소개 has stopped: the wipe wants a sentence
+        // that is standing still.
+        const begin = at(aboutHoldStart())
+        if (!aboutHoldStart() || p < begin) {
+          release()
+          return
+        }
+        const wipeEnd = begin + (vh * WIPE) / span
 
         if (p < wipeEnd) {
           // Still inline: a highlight wipe crosses the chip where it stands,
@@ -222,7 +229,7 @@ export default function Activities() {
           clone = null
           root.style.visibility = ''
           chip.style.visibility = ''
-          const local = p / wipeEnd
+          const local = (p - begin) / (wipeEnd - begin)
           const pct = (local * 100).toFixed(1)
           chip.style.background = `linear-gradient(to right, var(--point) ${pct}%, transparent ${pct}%)`
           chip.style.color = local >= 0.98 ? '#fff' : ''

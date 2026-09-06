@@ -265,9 +265,9 @@ body {
   padding-top: 90vh;
 }
 
-/* And room after the calendar has formed before Handoff C starts draining it. */
+/* Room for the calendar to fill itself in after its pin lets go. */
 #curriculum {
-  padding-bottom: 50vh;
+  padding-bottom: 20vh;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -609,15 +609,6 @@ html.act1-live .corners {
   z-index: 31;
   overflow: hidden;
   border-radius: 3px;
-}
-
-/* Handoff C's clones: the 3 surviving dp cells flying to the K3 nodes. */
-.handoff-dot {
-  position: absolute;
-  z-index: 31;
-  overflow: hidden;
-  border-radius: 50%;
-  background: var(--point);
 }
 
 .about-body {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { CURRICULUM } from '../content'
 import { PEEL_AT_VH, treeHoldStart } from './Activities'
 import { centerRect, cloneInto, lerpRect, placeAt, rectOf } from '../lib/handoff'
@@ -6,35 +6,8 @@ import { SETTLE_VH, ScrollTrigger, reduceMotion } from '../lib/motion'
 import DpGrid from './DpGrid'
 import Section from './Section'
 
-/** Handoff C leaves this many cells standing — they fly on to become K3's 3 nodes. */
-const SURVIVORS = 3
-const TOTAL_CELLS = CURRICULUM.rows.length * CURRICULUM.cols.length
-
 export default function Curriculum() {
   const table = useRef<HTMLDivElement>(null)
-  const [drain, setDrain] = useState(0)
-
-  // Handoff C: drains the grid down to 3 cells as Contest scrolls into view,
-  // in step with Contest.tsx's own trigger which flies those 3 cells on. The
-  // start/end strings must stay identical to Contest.tsx's fly trigger.
-  useEffect(() => {
-    if (reduceMotion()) return
-    const contest = document.getElementById('contest')
-    if (!contest) return
-
-    const trigger = ScrollTrigger.create({
-      trigger: contest,
-      start: 'top 110%',
-      end: 'top -30%',
-      scrub: 0.6,
-      onUpdate: (self) => {
-        const next = Math.round(self.progress * (TOTAL_CELLS - SURVIVORS))
-        setDrain((prev) => (prev === next ? prev : next))
-      },
-    })
-
-    return () => trigger.kill()
-  }, [])
 
   // Handoff B: Activities' "정규 수업" card becomes this section's calendar.
   // The card peels off the tree while the tree is still pinned, eases (slow,
@@ -179,7 +152,7 @@ export default function Curriculum() {
       label="커리큘럼"
       bleed={
         <div className="curriculum-table" ref={table}>
-          <DpGrid rows={CURRICULUM.rows} cols={CURRICULUM.cols} cells={CURRICULUM.cells} drain={drain} />
+          <DpGrid rows={CURRICULUM.rows} cols={CURRICULUM.cols} cells={CURRICULUM.cells} />
           <p className="curriculum-note">{CURRICULUM.note}</p>
         </div>
       }
