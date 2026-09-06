@@ -47,10 +47,13 @@ export default function DpGrid({ rows, cols, cells }: Props) {
       return
     }
 
+    // Starts once Handoff B's card->grid crossfade has landed (its own
+    // trigger ends at 'top 30%') — otherwise the grid fills itself in while
+    // still hidden behind the incoming clone.
     const trigger = ScrollTrigger.create({
       trigger: el,
-      start: 'top 78%',
-      end: 'center center',
+      start: 'top 30%',
+      end: 'top -50%',
       scrub: 0.35,
       onUpdate: (self) => {
         const next = filledCount(order.length, self.progress)

@@ -574,6 +574,14 @@ html.act1-live .corners {
   white-space: nowrap;
 }
 
+/* Handoff B's clone: the "정규 수업" card descending into the calendar. */
+.handoff-card {
+  position: absolute;
+  z-index: 31;
+  overflow: hidden;
+  border-radius: 3px;
+}
+
 .about-body {
   margin-top: clamp(2rem, 4vw, 3.25rem);
   display: grid;
