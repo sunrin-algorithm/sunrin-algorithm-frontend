@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { CURRICULUM } from '../content'
-import { WALK_VH, treeHoldStart } from './Activities'
+import { PEEL_AT_VH, treeHoldStart } from './Activities'
 import { centerRect, cloneInto, lerpRect, placeAt, rectOf } from '../lib/handoff'
-import { ScrollTrigger, reduceMotion } from '../lib/motion'
+import { SETTLE_VH, ScrollTrigger, reduceMotion } from '../lib/motion'
 import DpGrid from './DpGrid'
 import Section from './Section'
 
@@ -25,7 +25,7 @@ export default function Curriculum() {
     const trigger = ScrollTrigger.create({
       trigger: contest,
       start: 'top 110%',
-      end: 'top -10%',
+      end: 'top -30%',
       scrub: 0.6,
       onUpdate: (self) => {
         const next = Math.round(self.progress * (TOTAL_CELLS - SURVIVORS))
@@ -71,15 +71,16 @@ export default function Curriculum() {
     const GROW = 0.55
     const FADE = 0.25
 
-    // 달력 아주 조금만 고정: just long enough for the box to finish becoming it.
+    // 달력 아주 조금만 고정: long enough for the box to finish becoming the
+    // calendar, plus the settle where the finished calendar just stands there.
     const lock = ScrollTrigger.create({
       trigger: el,
       start: 'center center',
-      end: () => `+=${window.innerHeight * 0.4}`,
+      end: () => `+=${window.innerHeight * (FADE + SETTLE_VH)}`,
       // Grid, not just the table, so the section's index rides along with it.
       pin: el.closest('.section-grid') ?? el,
       anticipatePin: 1,
-      refreshPriority: 1,
+      refreshPriority: 3,
     })
 
     const drive = ScrollTrigger.create({
@@ -103,8 +104,9 @@ export default function Curriculum() {
         /** A document scroll offset as a fraction of this trigger's range. */
         const at = (y: number) => (y - self.start) / span
 
-        // The card cannot peel off until the last branch of the walk has drawn.
-        const begin = at(treeHoldStart() + vh * WALK_VH)
+        // The card cannot peel off until the last branch of the walk has drawn
+        // and the finished tree has held still for its settle.
+        const begin = at(treeHoldStart() + vh * PEEL_AT_VH)
         if (!treeHoldStart() || p < begin) {
           release()
           return

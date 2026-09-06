@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { CONTACT, FOOTER } from '../content'
-import { revealLines } from '../lib/motion'
+import { SETTLE_VH, ScrollTrigger, reduceMotion, revealLines } from '../lib/motion'
 import Section from './Section'
 import ThemeToggle from './ThemeToggle'
 
@@ -10,6 +10,28 @@ export default function Contact() {
   useEffect(() => {
     if (!footer.current) return
     return revealLines(footer.current)
+  }, [])
+
+  // The lead and the links reveal on their way in and are long finished by the
+  // time the section centres, so this pin is pure settle: the last screen of the
+  // page holds still for a beat before the footer climbs over it.
+  useEffect(() => {
+    if (reduceMotion()) return
+    const grid = document.querySelector<HTMLElement>('#contact .section-grid')
+    if (!grid) return
+
+    const hold = ScrollTrigger.create({
+      trigger: grid,
+      start: 'center center',
+      end: () => `+=${window.innerHeight * SETTLE_VH}`,
+      pin: grid,
+      anticipatePin: 1,
+      // Last of the four pins, so the lowest priority: everything above it must
+      // refresh first or it measures as if their spacers were not there.
+      refreshPriority: 1,
+    })
+
+    return () => hold.kill()
   }, [])
 
   return (

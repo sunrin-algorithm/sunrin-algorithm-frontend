@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { CONTEST } from '../content'
 import { cloneInto, lerpRect, placeAt, rectOf } from '../lib/handoff'
-import { ScrollTrigger, gsap, reduceMotion } from '../lib/motion'
+import { SETTLE_VH, ScrollTrigger, gsap, reduceMotion } from '../lib/motion'
 import Section from './Section'
 
 /** Three members, every pair talking to each other: K3. */
@@ -16,6 +16,9 @@ const PAIRS: [number, number][] = [
   [0, 2],
 ]
 
+/** How much of the pin the graph spends assembling; the rest of it is settle. */
+const LAND_VH = 0.35
+
 /** Maps an svg-user-space point to screen px, honoring xMidYMid-meet letterboxing. */
 function svgPointToScreen(svg: SVGSVGElement, x: number, y: number) {
   const rect = svg.getBoundingClientRect()
@@ -29,13 +32,18 @@ function svgPointToScreen(svg: SVGSVGElement, x: number, y: number) {
 function TeamViz() {
   const svg = useRef<SVGSVGElement>(null)
 
+  // The graph assembles with nothing moving under it: once the svg reaches the
+  // centre of the screen the whole section grid pins there, the nodes pop in and
+  // the edges draw across, Handoff C's dots land on them, and then the finished
+  // K3 just stands there for a beat before the section is let go.
   useEffect(() => {
     const el = svg.current
     if (!el || reduceMotion()) return
 
-    const timeline = gsap.timeline({
-      scrollTrigger: { trigger: el, start: 'top 85%', end: 'center center', scrub: 0.4 },
-    })
+    // Paused, driven by the pin's own progress: a second scrollTrigger anchored
+    // on the svg would measure a screen position, not a document one, once the
+    // pin around it has been applied.
+    const timeline = gsap.timeline({ paused: true })
     // fromTo, not from: StrictMode remounts and from() would read the
     // already-zeroed opacity as its end value.
     timeline
@@ -51,8 +59,22 @@ function TeamViz() {
         '-=0.2',
       )
 
+    const span = LAND_VH + SETTLE_VH
+    const hold = ScrollTrigger.create({
+      trigger: el,
+      start: 'center center',
+      end: () => `+=${window.innerHeight * span}`,
+      // The grid, so the section's own [04] index is held alongside the graph.
+      pin: el.closest('.section-grid') ?? el,
+      anticipatePin: 1,
+      // Pins refresh top-down, earliest first, or GSAP measures the later ones
+      // as if the earlier spacers were not there.
+      refreshPriority: 2,
+      onUpdate: (self) => timeline.progress(Math.min((self.progress * span) / LAND_VH, 1)),
+    })
+
     return () => {
-      timeline.scrollTrigger?.kill()
+      hold.kill()
       timeline.kill()
     }
   }, [])
@@ -81,7 +103,7 @@ function TeamViz() {
     const trigger = ScrollTrigger.create({
       trigger: contest,
       start: 'top 110%',
-      end: 'top -10%',
+      end: 'top -30%',
       scrub: 0.6,
       onUpdate: (self) => {
         const p = self.progress

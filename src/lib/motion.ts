@@ -9,6 +9,14 @@ export { gsap, ScrollTrigger }
 export const reduceMotion = () =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
+/**
+ * How long, in viewport heights, a section holds the screen its animation just
+ * produced before letting go. Every pinned section spends this at the tail of
+ * its pin, so the finished picture gets a beat to be looked at instead of being
+ * yanked away on the frame it completes.
+ */
+export const SETTLE_VH = 0.45
+
 let lenis: Lenis | null = null
 
 /**

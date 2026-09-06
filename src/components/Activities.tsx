@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ACTIVITIES, ACTIVITY_BRANCHES } from '../content'
 import { centerRect, cloneInto, lerpRect, placeAt, rectOf } from '../lib/handoff'
-import { ScrollTrigger, reduceMotion } from '../lib/motion'
+import { SETTLE_VH, ScrollTrigger, reduceMotion } from '../lib/motion'
 import { dfsOrder, parentOf, pathToRoot } from '../lib/tree'
 import Section from './Section'
 
@@ -18,13 +18,19 @@ const EDGES = [1, 2, 3, 4, 5, 6].map((id) => ({ from: parentOf(id) as number, to
 /** Only the fixed 7-node shape can be drawn; any other count falls back to a plain grid. */
 const DRAW = ACTIVITIES.length === 4
 
-/** Scroll length of the DFS walk, in viewport heights. Curriculum reads it to
-    know when the tree has finished unfolding and its own handoff may begin. */
-export const WALK_VH = 1.1
+/** Scroll length of the DFS walk, in viewport heights. */
+const WALK_VH = 1.1
 
-/** Total length of the tree's hold: the walk, plus the beat where Curriculum's
-    card peels off it. The tree is pinned for all of it. */
-const HOLD_VH = WALK_VH + 0.75
+/** Length of the beat where Curriculum's card peels off the finished tree. */
+const PEEL_VH = 0.75
+
+/** How far into the tree's hold Curriculum's card may start peeling off: after
+    the walk has drawn every branch, and after the finished tree has held still
+    for its settle. Curriculum reads this. */
+export const PEEL_AT_VH = WALK_VH + SETTLE_VH
+
+/** Total length of the tree's hold — walk, settle, peel. Pinned for all of it. */
+const HOLD_VH = PEEL_AT_VH + PEEL_VH
 
 /** Where the tree's pin engages. Handoff A lands its point on it and Curriculum
     keys Handoff B off it; both would otherwise have to measure a trigger inside
@@ -130,7 +136,7 @@ export default function Activities() {
       anticipatePin: 1,
       // Both pins must refresh before anything below them measures, earliest
       // first, or GSAP sizes later triggers as if the spacers were not there.
-      refreshPriority: 2,
+      refreshPriority: 4,
       // The walk rides the pin's own progress instead of a second trigger: a
       // separate one would have to measure the root node, which reads as a
       // screen position rather than a document one once the pin around it has
