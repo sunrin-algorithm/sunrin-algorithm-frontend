@@ -1,13 +1,14 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CURRICULUM } from '../content'
-import { PEEL_AT_VH, treeHoldStart } from './Activities'
+import { PEEL_AT_VH, treeHoldEnd, treeHoldStart } from './Activities'
 import { centerRect, cloneInto, lerpRect, placeAt, rectOf } from '../lib/handoff'
-import { SETTLE_VH, ScrollTrigger, reduceMotion } from '../lib/motion'
+import { SETTLE_VH, ScrollTrigger, fitStart, reduceMotion, registerDoneAt } from '../lib/motion'
 import DpGrid from './DpGrid'
 import Section from './Section'
 
 export default function Curriculum() {
   const table = useRef<HTMLDivElement>(null)
+  const [fillProgress, setFillProgress] = useState(0)
 
   // Handoff B: Activities' "정규 수업" card becomes this section's calendar.
   // The card peels off the tree while the tree is still pinned, eases (slow,
@@ -45,24 +46,43 @@ export default function Curriculum() {
       fadeBlurbs('')
     }
 
-    /** Beat lengths in viewport heights: travel, resize, crossfade, and the
-        extra the finished calendar lingers on top of the shared settle. */
+    /** Beat lengths in viewport heights: travel, park, resize, crossfade, the
+        grid filling itself in, and the extra the finished calendar lingers on
+        top of the shared settle. Only the park is capped rather than left to
+        soak up whatever's left — see `begin` below for where that goes instead. */
     const MOVE = 0.6
+    const PARK = 0.4
     const GROW = 0.55
-    const FADE = 0.25
-    const LINGER = 0.6
+    const FADE = 0.2
+    const FILL = 0.5
+    const LINGER = 0.4
+    const LOCK_VH = FADE + FILL + LINGER + SETTLE_VH
+
+    // Grid, not just the table, so the section's index rides along with it,
+    // and so the pin fits the whole grid on screen rather than just the table.
+    const sectionGrid = el.closest<HTMLElement>('.section-grid') ?? el
 
     // Held long enough for the box to finish becoming the calendar, for the
     // grid to fill itself in while it stands there, and for the settle after.
     const lock = ScrollTrigger.create({
-      trigger: el,
-      start: 'center center',
-      end: () => `+=${window.innerHeight * (FADE + LINGER + SETTLE_VH)}`,
-      // Grid, not just the table, so the section's index rides along with it.
-      pin: el.closest('.section-grid') ?? el,
+      trigger: sectionGrid,
+      start: fitStart(sectionGrid),
+      end: () => `+=${window.innerHeight * LOCK_VH}`,
+      pin: sectionGrid,
       anticipatePin: 1,
       refreshPriority: 3,
+      // The dp grid's own fill rides this pin's progress instead of a magic
+      // scroll-percentage trigger of its own: it starts the frame the
+      // crossfade finishes (at FADE/LOCK_VH) and runs for FILL/LOCK_VH more.
+      onUpdate: (self) => {
+        const t = (self.progress * LOCK_VH - FADE) / FILL
+        setFillProgress(Math.min(Math.max(t, 0), 1))
+      },
     })
+    const unregisterDone = registerDoneAt(
+      'curriculum',
+      () => lock.start + window.innerHeight * (FADE + FILL),
+    )
 
     const drive = ScrollTrigger.create({
       // Anchored on the activity section itself, never on anything inside the
@@ -85,10 +105,23 @@ export default function Curriculum() {
         /** A document scroll offset as a fraction of this trigger's range. */
         const at = (y: number) => (y - self.start) / span
 
+        if (!treeHoldStart()) {
+          release()
+          return
+        }
+
         // The card cannot peel off until the last branch of the walk has drawn
-        // and the finished tree has held still for its settle.
-        const begin = at(treeHoldStart() + vh * PEEL_AT_VH)
-        if (!treeHoldStart() || p < begin) {
+        // and the finished tree has held still for its settle, and it must
+        // start early enough that travel + park + grow still lands exactly on
+        // the calendar's own pin. Whatever slack is left between those two
+        // bounds is spent here, before the peel starts and while the tree
+        // just sits pinned already fully drawn, rather than in the park —
+        // that's what keeps the box's own stand-still capped at PARK.
+        const peelEarliest = treeHoldStart() + vh * PEEL_AT_VH
+        const wantBegin = lock.start - vh * (MOVE + PARK + GROW)
+        const beginDoc = Math.min(Math.max(peelEarliest, wantBegin), treeHoldEnd() - vh * 0.2)
+        const begin = at(beginDoc)
+        if (p < begin) {
           release()
           return
         }
@@ -96,7 +129,8 @@ export default function Curriculum() {
         // The landing is the calendar's own pin: the box finishes becoming the
         // grid on the frame the grid stops moving.
         const land = Math.min(at(lock.start), 0.999)
-        const grow = Math.max(land - (vh * GROW) / span, moveEnd + 0.01)
+        const parkEnd = Math.min(moveEnd + (vh * PARK) / span, land - 0.001)
+        const grow = Math.max(parkEnd, moveEnd + 0.01)
         const gone = land + (vh * FADE) / span
 
         if (p >= gone) {
@@ -148,6 +182,7 @@ export default function Curriculum() {
     })
 
     return () => {
+      unregisterDone()
       drive.kill()
       lock.kill()
       release()
@@ -161,7 +196,12 @@ export default function Curriculum() {
       label="커리큘럼"
       bleed={
         <div className="curriculum-table" ref={table}>
-          <DpGrid rows={CURRICULUM.rows} cols={CURRICULUM.cols} cells={CURRICULUM.cells} />
+          <DpGrid
+            rows={CURRICULUM.rows}
+            cols={CURRICULUM.cols}
+            cells={CURRICULUM.cells}
+            progress={fillProgress}
+          />
           <p className="curriculum-note">{CURRICULUM.note}</p>
         </div>
       }

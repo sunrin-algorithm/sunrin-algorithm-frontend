@@ -1,11 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { antiDiagonalOrder, cellKey, dependencies, filledCount } from '../lib/dp'
-import { ScrollTrigger, reduceMotion } from '../lib/motion'
+import { reduceMotion } from '../lib/motion'
 
 type Props = {
   rows: string[]
   cols: string[]
   cells: (string | null)[][]
+  /** 0..1, driven by Curriculum's own pin — the grid has no scroll logic of
+      its own, since a trigger on an element inside a pin measures a screen
+      position, not a document one, once the pin around it is applied. */
+  progress: number
 }
 
 /** 2D prefix sum: how many topics you are carrying by the time you reach a cell. */
@@ -27,8 +31,7 @@ function prefixSums(cells: (string | null)[][]) {
 const term = (dp: number[][], row: number, col: number) =>
   row < 0 || col < 0 ? '0' : `${dp[row][col]}`
 
-export default function DpGrid({ rows, cols, cells }: Props) {
-  const wrap = useRef<HTMLDivElement>(null)
+export default function DpGrid({ rows, cols, cells, progress }: Props) {
   const dp = useMemo(() => prefixSums(cells), [cells])
   const order = useMemo(() => antiDiagonalOrder(rows.length, cols.length), [rows, cols])
   const rank = useMemo(
@@ -36,39 +39,14 @@ export default function DpGrid({ rows, cols, cells }: Props) {
     [order],
   )
 
-  const [filled, setFilled] = useState(0)
   const [hover, setHover] = useState<{ row: number; col: number } | null>(null)
 
-  useEffect(() => {
-    const el = wrap.current
-    if (!el) return
-    if (reduceMotion()) {
-      setFilled(order.length)
-      return
-    }
-
-    // Starts once Handoff B's card->grid crossfade has landed (its own
-    // trigger ends at 'top 45%') — otherwise the grid fills itself in while
-    // still hidden behind the incoming clone.
-    const trigger = ScrollTrigger.create({
-      trigger: el,
-      start: 'top 45%',
-      end: 'top -65%',
-      scrub: 0.5,
-      onUpdate: (self) => {
-        const next = filledCount(order.length, self.progress)
-        setFilled((prev) => (prev === next ? prev : next))
-      },
-    })
-
-    return () => trigger.kill()
-  }, [order])
-
+  const filled = reduceMotion() ? order.length : filledCount(order.length, progress)
   const deps = hover ? dependencies(hover.row, hover.col) : []
   const depKeys = new Set(deps.map((d) => cellKey(d.row, d.col)))
 
   return (
-    <div ref={wrap}>
+    <div>
       <div className="dp-scroll">
         <div
           className="dp"

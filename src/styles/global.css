@@ -262,22 +262,13 @@ body {
    tree arrives underneath it, and that beat is pure scroll distance. 소개 keeps
    travelling up through it, so the gap is never empty. */
 #activity {
-  padding-top: 90vh;
-}
-
-/* Room for the calendar to fill itself in after its pin lets go. */
-#curriculum {
-  padding-bottom: 20vh;
+  padding-top: 55vh;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* No handoffs run, so the runways would just be empty screens. */
+  /* No handoffs run, so the runway would just be an empty screen. */
   #activity {
     padding-top: clamp(6rem, 12vh, 9rem);
-  }
-
-  #curriculum {
-    padding-bottom: clamp(6rem, 12vh, 9rem);
   }
 }
 
@@ -834,7 +825,9 @@ html.act1-live body {
 }
 
 .activity-item.is-path {
-  background: var(--line-soft);
+  /* line-soft alone is translucent -- layer it over paper so the edge
+     underneath stays hidden instead of showing through on hover. */
+  background: linear-gradient(var(--line-soft), var(--line-soft)), var(--paper);
 }
 
 .activity-item .head {
@@ -866,24 +859,36 @@ html.act1-live body {
 /* Narrow screens run the same traversal down a rail on the left, git-graph style. */
 @media (max-width: 1000px) {
   .activity-tree {
-    padding-top: clamp(5.5rem, 12vw, 7rem);
+    padding-top: 2.75rem;
     padding-left: 3.5rem;
   }
 
   .activity-list {
     grid-template-columns: 1fr;
-    gap: 1.1rem;
+    gap: 0.7rem;
     border: 0;
   }
 
   .activity-item {
     border: var(--rule) solid var(--line);
     min-height: 0;
+    padding: 0.8rem;
   }
 
   /* Room for the second branch node between the two subtrees. */
   .activity-item:nth-child(3) {
-    margin-top: 4rem;
+    margin-top: 2.5rem;
+  }
+
+  /* Stacked cards run one after another, so the breadcrumb doesn't need as
+     much air under it as the wide layout's side-by-side one does. */
+  .activity-stack {
+    padding-bottom: 1rem;
+  }
+
+  /* The pin has to fit the whole grid on a short viewport. */
+  #activity .section-grid {
+    row-gap: 1rem;
   }
 
   /* The rail has no room on the left, so every tag hangs off the right. */

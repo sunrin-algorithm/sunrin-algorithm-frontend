@@ -36,6 +36,10 @@ export default function Corners({ open, onOpenChange }: Props) {
 
   const jump = (e: MouseEvent, id: string) => {
     e.preventDefault()
+    // Unlock before scrolling: the sheet's own cleanup effect would do this
+    // too, but only on the next render, and Lenis ignores scrollTo while
+    // stopped -- so scrollToId called any earlier would silently do nothing.
+    setScrollLocked(false)
     onOpenChange(false)
     scrollToId(id)
     // Lenis owns the scroll position, so the URL has to be updated by hand.

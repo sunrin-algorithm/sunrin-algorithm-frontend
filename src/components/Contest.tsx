@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { CONTEST } from '../content'
-import { SETTLE_VH, ScrollTrigger, gsap, reduceMotion } from '../lib/motion'
+import { SETTLE_VH, ScrollTrigger, fitStart, gsap, reduceMotion, registerDoneAt } from '../lib/motion'
 import Section from './Section'
 
 /** Three members, every pair talking to each other: K3. */
@@ -16,7 +16,7 @@ const PAIRS: [number, number][] = [
 ]
 
 /** How much of the pin the graph spends assembling; the rest of it is settle. */
-const LAND_VH = 0.35
+const LAND_VH = 0.3
 
 function TeamViz() {
   const svg = useRef<SVGSVGElement>(null)
@@ -48,21 +48,25 @@ function TeamViz() {
         '-=0.2',
       )
 
+    // The grid, so the section's own [04] index is held alongside the graph,
+    // and so the pin fits the whole grid on screen rather than just the svg.
+    const grid = el.closest<HTMLElement>('.section-grid') ?? el
     const span = LAND_VH + SETTLE_VH
     const hold = ScrollTrigger.create({
-      trigger: el,
-      start: 'center center',
+      trigger: grid,
+      start: fitStart(grid),
       end: () => `+=${window.innerHeight * span}`,
-      // The grid, so the section's own [04] index is held alongside the graph.
-      pin: el.closest('.section-grid') ?? el,
+      pin: grid,
       anticipatePin: 1,
       // Pins refresh top-down, earliest first, or GSAP measures the later ones
       // as if the earlier spacers were not there.
       refreshPriority: 2,
       onUpdate: (self) => timeline.progress(Math.min((self.progress * span) / LAND_VH, 1)),
     })
+    const unregister = registerDoneAt('contest', () => hold.start + window.innerHeight * LAND_VH)
 
     return () => {
+      unregister()
       hold.kill()
       timeline.kill()
     }

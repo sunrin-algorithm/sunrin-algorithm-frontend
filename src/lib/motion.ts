@@ -1,6 +1,7 @@
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import Lenis from 'lenis'
+import { fitTop } from './fit'
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -15,7 +16,20 @@ export const reduceMotion = () =>
  * its pin, so the finished picture gets a beat to be looked at instead of being
  * yanked away on the frame it completes.
  */
-export const SETTLE_VH = 0.45
+export const SETTLE_VH = 0.32
+
+/** Clears the fixed corner bar — same 5.5rem as .section's scroll-margin-top. */
+const NAV_BAR = 88
+
+/**
+ * A ScrollTrigger `start` that pins a section's whole grid where it fits on
+ * screen, instead of centering some element inside it. Centering an inner
+ * element (the old approach) leaves however much of the grid is left over on
+ * either side of it hanging off-screen, unreachable once the grid is pinned.
+ */
+export function fitStart(el: Element, bar = NAV_BAR) {
+  return () => `top top+=${fitTop(el.getBoundingClientRect().height, window.innerHeight, bar)}`
+}
 
 let lenis: Lenis | null = null
 
@@ -45,11 +59,28 @@ export function initSmoothScroll(): () => void {
   }
 }
 
+/**
+ * Document offsets where a section's animation has finished, keyed by id.
+ * Bookmark navigation lands here instead of on the section's own top, which
+ * is only ever the state the section starts in, not the one it's shown for.
+ */
+const doneAt = new Map<string, () => number>()
+
+/** Registers `at` as `id`'s finished-animation offset; returns the unregister. */
+export function registerDoneAt(id: string, at: () => number): () => void {
+  doneAt.set(id, at)
+  return () => {
+    if (doneAt.get(id) === at) doneAt.delete(id)
+  }
+}
+
 /** Anchor navigation that goes through Lenis when it is running. */
 export function scrollToId(id: string) {
   const target = document.getElementById(id)
   if (!target) return
-  if (lenis) lenis.scrollTo(target, { offset: -8, duration: 1.15 })
+  const done = doneAt.get(id)?.()
+  if (lenis) lenis.scrollTo(done || target, { offset: -8, duration: 1.15 })
+  else if (done) window.scrollTo(0, done - 8)
   else target.scrollIntoView({ behavior: 'auto', block: 'start' })
 }
 

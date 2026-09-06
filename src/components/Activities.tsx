@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ACTIVITIES, ACTIVITY_BRANCHES } from '../content'
 import { centerRect, cloneInto, lerpRect, placeAt, rectOf } from '../lib/handoff'
-import { SETTLE_VH, ScrollTrigger, reduceMotion } from '../lib/motion'
+import { SETTLE_VH, ScrollTrigger, fitStart, reduceMotion, registerDoneAt } from '../lib/motion'
 import { dfsOrder, parentOf, pathToRoot } from '../lib/tree'
 import { aboutHoldStart } from './About'
 import Section from './Section'
@@ -20,10 +20,10 @@ const EDGES = [1, 2, 3, 4, 5, 6].map((id) => ({ from: parentOf(id) as number, to
 const DRAW = ACTIVITIES.length === 4
 
 /** Scroll length of the DFS walk, in viewport heights. */
-const WALK_VH = 1.1
+const WALK_VH = 0.9
 
 /** Length of the beat where Curriculum's card peels off the finished tree. */
-const PEEL_VH = 0.75
+const PEEL_VH = 0.6
 
 /** How far into the tree's hold Curriculum's card may start peeling off: after
     the walk has drawn every branch, and after the finished tree has held still
@@ -33,12 +33,14 @@ export const PEEL_AT_VH = WALK_VH + SETTLE_VH
 /** Total length of the tree's hold — walk, settle, peel. Pinned for all of it. */
 const HOLD_VH = PEEL_AT_VH + PEEL_VH
 
-/** Where the tree's pin engages. Handoff A lands its point on it and Curriculum
-    keys Handoff B off it; both would otherwise have to measure a trigger inside
-    a pinned element, which reads as a screen position, not a document one.
+/** Where the tree's pin engages, and where it lets go. Handoff A lands its
+    point on the start and Curriculum keys Handoff B's clamp off the end; both
+    would otherwise have to measure a trigger inside a pinned element, which
+    reads as a screen position, not a document one.
     ponytail: module singleton -- the page only ever has one Activities. */
 let treeHold: ScrollTrigger | null = null
 export const treeHoldStart = () => treeHold?.start ?? 0
+export const treeHoldEnd = () => treeHold?.end ?? 0
 
 const labelOf = (id: number) =>
   id === 0 ? '활동' : id < 3 ? ACTIVITY_BRANCHES[id - 1] : ACTIVITIES[id - 3].title
@@ -124,31 +126,34 @@ export default function Activities() {
       setVisited(N)
       return
     }
-    const root = el.querySelector<HTMLElement>('[data-node="0"]') ?? el
+    // The whole section grid, not just the tree: the section's own [02] index
+    // is a sibling of the body, so pinning the body alone would leave the
+    // number to scroll off on its own. Pinning the grid at a fit-clamped start
+    // (rather than centering the root node inside it) is also what keeps every
+    // card on screen once the grid is taller than the viewport.
+    const grid = el.closest<HTMLElement>('.section-grid') ?? el
 
     const pin = ScrollTrigger.create({
-      trigger: root,
-      start: 'center center',
+      trigger: grid,
+      start: fitStart(grid),
       end: () => `+=${window.innerHeight * HOLD_VH}`,
-      // The whole section grid, not just the tree: the section's own [03] index
-      // is a sibling of the body, so pinning the body alone would leave the
-      // number to scroll off on its own.
-      pin: el.closest('.section-grid') ?? el,
+      pin: grid,
       anticipatePin: 1,
       // Both pins must refresh before anything below them measures, earliest
       // first, or GSAP sizes later triggers as if the spacers were not there.
       refreshPriority: 4,
       // The walk rides the pin's own progress instead of a second trigger: a
-      // separate one would have to measure the root node, which reads as a
-      // screen position rather than a document one once the pin around it has
-      // been applied.
+      // separate one would have to measure something inside the pin, which
+      // reads as a screen position rather than a document one.
       onUpdate: (self) =>
         setVisited(Math.round(Math.min((self.progress * HOLD_VH) / WALK_VH, 1) * N)),
     })
     treeHold = pin
+    const unregister = registerDoneAt('activity', () => pin.start + window.innerHeight * WALK_VH)
 
     return () => {
       treeHold = null
+      unregister()
       pin.kill()
     }
   }, [layout])
@@ -184,11 +189,12 @@ export default function Activities() {
       root.style.visibility = ''
     }
 
-    // Lengths of the four beats, in viewport heights. Only the park is elastic:
-    // it soaks up whatever distance is left between 소개 and the tree.
+    // Lengths of the beats, in viewport heights. The shrink is what's left
+    // over: whatever distance sits between 소개 and the tree, past the wipe,
+    // fly and the (capped) park, is spent shrinking rather than standing still.
     const WIPE = 0.4
     const FLY = 0.5
-    const SHRINK = 0.5
+    const PARK = 0.2
 
     const drive = ScrollTrigger.create({
       // The section, never the paragraph inside it: 소개's own pin is applied
@@ -241,7 +247,8 @@ export default function Activities() {
         const landing = treeHold?.start || self.start + vh * 2
         const finish = Math.min(at(landing), 0.999)
         const flyEnd = Math.min(wipeEnd + (vh * FLY) / span, finish)
-        const shrink = Math.max(finish - (vh * SHRINK) / span, flyEnd + 0.01)
+        const parkEnd = Math.min(flyEnd + (vh * PARK) / span, finish - 0.001)
+        const shrink = Math.max(parkEnd, flyEnd + 0.01)
 
         if (p >= finish) {
           release()

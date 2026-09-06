@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { ABOUT } from '../content'
-import { SETTLE_VH, ScrollTrigger, gsap, reduceMotion } from '../lib/motion'
+import { SETTLE_VH, ScrollTrigger, fitStart, gsap, reduceMotion, registerDoneAt } from '../lib/motion'
 import Section from './Section'
 
 /** Where 소개's brief stop engages. Activities' Handoff A keys the chip's wipe
@@ -62,7 +62,7 @@ export default function About() {
 
     const pin = ScrollTrigger.create({
       trigger: grid,
-      start: 'center center',
+      start: fitStart(grid),
       end: () => `+=${window.innerHeight * SETTLE_VH}`,
       pin: grid,
       anticipatePin: 1,
@@ -71,9 +71,11 @@ export default function About() {
       refreshPriority: 5,
     })
     aboutHold = pin
+    const unregister = registerDoneAt('about', () => pin.start)
 
     return () => {
       aboutHold = null
+      unregister()
       pin.kill()
     }
   }, [])

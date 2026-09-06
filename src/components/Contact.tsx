@@ -1,6 +1,13 @@
 import { useEffect, useRef } from 'react'
 import { CONTACT, FOOTER } from '../content'
-import { SETTLE_VH, ScrollTrigger, reduceMotion, revealLines } from '../lib/motion'
+import {
+  SETTLE_VH,
+  ScrollTrigger,
+  fitStart,
+  reduceMotion,
+  registerDoneAt,
+  revealLines,
+} from '../lib/motion'
 import Section from './Section'
 import ThemeToggle from './ThemeToggle'
 
@@ -22,7 +29,7 @@ export default function Contact() {
 
     const hold = ScrollTrigger.create({
       trigger: grid,
-      start: 'center center',
+      start: fitStart(grid),
       end: () => `+=${window.innerHeight * SETTLE_VH}`,
       pin: grid,
       anticipatePin: 1,
@@ -30,8 +37,12 @@ export default function Contact() {
       // refresh first or it measures as if their spacers were not there.
       refreshPriority: 1,
     })
+    const unregister = registerDoneAt('contact', () => hold.start)
 
-    return () => hold.kill()
+    return () => {
+      unregister()
+      hold.kill()
+    }
   }, [])
 
   return (
