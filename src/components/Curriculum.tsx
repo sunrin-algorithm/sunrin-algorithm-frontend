@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { CURRICULUM } from '../content'
-import { cloneInto, lerpRect, placeAt, rectOf, sizedAt } from '../lib/handoff'
+import { cloneInto, lerpRect, placeAt, rectOf } from '../lib/handoff'
 import { ScrollTrigger, reduceMotion } from '../lib/motion'
 import DpGrid from './DpGrid'
 import Section from './Section'
@@ -35,12 +35,14 @@ export default function Curriculum() {
     return () => trigger.kill()
   }, [])
 
-  // Handoff B: Activities' "정규 수업" card descends into this section's
-  // calendar. Same pin-then-release shape as Handoff A — the whole activity
-  // tree is pinned for a short "지정" beat (a glow on the card in place),
-  // then released: the tree scrolls on while the card decouples into a clone
-  // that first only moves (own size, riding to the grid's center) and only
-  // afterwards resizes onto the grid — never both at once.
+  // Handoff B: Activities' "정규 수업" card becomes this section's calendar.
+  // Same pin-then-release shape as Handoff A: the tree is pinned for a short
+  // "지정" beat (the card glows in place), then the card decouples into a
+  // clone that settles onto the viewport's vertical midline and *holds* there
+  // while the page keeps scrolling behind it — that hold is what makes the
+  // box read as the centre of the screen. Its horizontal centre never moves,
+  // so nothing pans sideways; only once the box is parked does it shed its
+  // text and grow into the grid.
   useEffect(() => {
     const el = table.current
     if (!el || reduceMotion()) return
@@ -84,26 +86,33 @@ export default function Curriculum() {
       scrub: 0.8,
       onUpdate: (self) => {
         const p = self.progress
-        const span = self.end - self.start
-        const pinFrac = span > 0 ? Math.min(pinPx() / span, 0.5) : 0
         const g = grid()
-
         if (!g || p <= 0 || p >= 1) {
           release()
           return
         }
 
-        if (p < pinFrac) {
-          // Still pinned: the card glows in place, no clone yet.
+        const span = self.end - self.start
+        const pinEnd = span > 0 ? Math.min(pinPx() / span, 0.5) : 0
+
+        if (p < pinEnd) {
+          // Still pinned: the card is designated in place, no clone yet.
           clone?.remove()
           clone = null
           card.style.visibility = ''
           g.style.opacity = ''
           g.style.pointerEvents = ''
-          const local = pinFrac > 0 ? p / pinFrac : 1
-          card.style.boxShadow = `0 0 ${18 * local}px ${6 * local}px rgba(42,161,254,${0.55 * local})`
+          const t = pinEnd > 0 ? p / pinEnd : 1
+          card.style.boxShadow = `0 0 ${18 * t}px ${6 * t}px rgba(42,161,254,${0.55 * t})`
           return
         }
+
+        // Every window is cut from whatever is left after the pin, so none of
+        // them can collapse to zero width however long the pin turns out.
+        const rest = 1 - pinEnd
+        const dropEnd = pinEnd + rest * 0.42
+        const holdEnd = pinEnd + rest * 0.62
+        const growEnd = pinEnd + rest * 0.86
 
         if (!clone) clone = cloneInto(stage, card).clone
         clone.classList.add('handoff-card')
@@ -112,24 +121,37 @@ export default function Curriculum() {
 
         const cardRect = rectOf(card)
         const gridRect = rectOf(g)
-        const atGrid = sizedAt(cardRect, gridRect)
+        // Vertically centred, horizontally exactly where the card already is:
+        // a fixed screen rect, so the clone parks instead of being dragged
+        // along by the scroll the way a document-space target would.
+        const hold = {
+          x: cardRect.x,
+          y: window.innerHeight / 2 - cardRect.h / 2,
+          w: cardRect.w,
+          h: cardRect.h,
+        }
 
-        let rect = cardRect
+        let rect = hold
+        let text = 1
         let gridFade = 0
-        if (p < 0.62) {
-          // Descend only: own size, riding to the grid's center.
-          const t = (p - pinFrac) / (0.62 - pinFrac)
-          rect = sizedAt(cardRect, lerpRect(cardRect, gridRect, t))
-        } else if (p < 0.88) {
-          // Resize only: center held, size grows onto the grid.
-          const t = (p - 0.62) / (0.88 - 0.62)
-          rect = lerpRect(atGrid, gridRect, t)
+        if (p < dropEnd) {
+          rect = lerpRect(cardRect, hold, (p - pinEnd) / (dropEnd - pinEnd))
+        } else if (p < holdEnd) {
+          // Parked dead centre; the card's own text dissolves off it.
+          text = 1 - (p - dropEnd) / (holdEnd - dropEnd)
+        } else if (p < growEnd) {
+          rect = lerpRect(hold, gridRect, (p - holdEnd) / (growEnd - holdEnd))
+          text = 0
         } else {
           rect = gridRect
-          gridFade = (p - 0.88) / 0.12
+          text = 0
+          gridFade = (p - growEnd) / (1 - growEnd)
         }
 
         placeAt(clone, rect)
+        Array.from(clone.children).forEach((c) => {
+          ;(c as HTMLElement).style.opacity = String(text)
+        })
         clone.style.boxShadow = '0 0 18px 6px rgba(42,161,254,0.55)'
         clone.style.opacity = String(1 - gridFade)
         g.style.opacity = String(gridFade)

@@ -20,13 +20,6 @@ export function centerRect(vw: number, vh: number, w: number, h: number): Rect {
   return { x: vw / 2 - w / 2, y: vh / 2 - h / 2, w, h }
 }
 
-/** `size`'s width/height, centered on `at`'s midpoint — a move with no resize. */
-export function sizedAt(size: Rect, at: Rect): Rect {
-  const cx = at.x + at.w / 2
-  const cy = at.y + at.h / 2
-  return { x: cx - size.w / 2, y: cy - size.h / 2, w: size.w, h: size.h }
-}
-
 export function rectOf(el: Element): Rect {
   const r = el.getBoundingClientRect()
   return { x: r.x, y: r.y, w: r.width, h: r.height }
