@@ -8,6 +8,7 @@ import {
   leafBoxRect,
   leafEdges,
   leafGlyphCenter,
+  leafOrder,
   midBoxRect,
   midEdges,
   midGlyphCenter,
@@ -82,7 +83,10 @@ export default function Act1({ skipLock }: Props) {
     // permanently locked — there is no skip, so this is the only way out.
     const timeout = window.setTimeout(finish, 10_000)
 
-    if (!skipLock) setScrollLocked(true)
+    if (!skipLock) {
+      window.scrollTo(0, 0)
+      setScrollLocked(true)
+    }
     document.documentElement.classList.add('act1-live')
 
     const vw = window.innerWidth
@@ -90,6 +94,22 @@ export default function Act1({ skipLock }: Props) {
     const cam0 = cameraFor(0, vw, vh)
     const cam1 = cameraFor(1, vw, vh)
     const cam2 = cameraFor(2, vw, vh)
+
+    const order = leafOrder()
+    /** How far a leaf box must travel to become its cell inside its word box. */
+    const toMid = (slot: number) => {
+      const from = leafBoxRect(slot)
+      const to = midGlyphCenter(order[slot])
+      return { x: to.x - GW / 2 - from.x, y: to.y - GH / 2 - from.y }
+    }
+    /** ...and on to its cell in the single merged row. */
+    const toRoot = (slot: number) => {
+      const from = leafBoxRect(slot)
+      const to = rootGlyphCenter(order[slot])
+      return { x: to.x - GW / 2 - from.x, y: to.y - GH / 2 - from.y }
+    }
+    /** The word boxes ride down with their cells into the root row. */
+    const midDrop = rootBoxRect().y - midBoxRect(0).y
 
     gsap.set(camera, { x: cam0.x, y: cam0.y, scale: cam0.scale, transformOrigin: '0 0' })
     gsap.set([...leafBoxes, ...midBoxes, rootBox], { opacity: 0, scale: 0.6, transformOrigin: 'center' })
@@ -127,40 +147,63 @@ export default function Act1({ skipLock }: Props) {
         },
         0.15,
       )
-      // 1.25–2.15 — stage 1: each word's leaves sort into their own mid box.
-      .to(camera, { x: cam1.x, y: cam1.y, scale: cam1.scale, duration: 0.9, ease: 'power2.inOut' }, 1.25)
-      .to(leafEdgeEls, { strokeDashoffset: 0, duration: 0.6, stagger: 0.02 }, 1.25)
-      .to(midBoxes, { opacity: 1, scale: 1, duration: 0.4, stagger: 0.15, ease: 'back.out(2)' }, 1.45)
+      // 1.25–1.80 — leaf edges draw, pointing each cell at its word box.
+      .to(leafEdgeEls, { strokeDashoffset: 0, duration: 0.55, stagger: 0.02 }, 1.25)
+      // 1.70–2.60 — stage 1: camera pulls to frame the word row, and the cells
+      // themselves slide down and butt together into their word — box and
+      // glyph share one duration, stagger and ease so no letter leaves its box.
+      .to(camera, { x: cam1.x, y: cam1.y, scale: cam1.scale, duration: 0.9, ease: 'power2.inOut' }, 1.7)
+      .to(
+        leafBoxes,
+        { x: (slot) => toMid(slot).x, y: (slot) => toMid(slot).y, duration: 0.65, stagger: 0.03, ease: 'power2.inOut' },
+        1.7,
+      )
       .to(
         glyphs,
         {
           left: (i) => midGlyphCenter(i).x - GW / 2,
           top: (i) => midGlyphCenter(i).y - GH / 2,
-          duration: 0.6,
-          stagger: 0.04,
+          duration: 0.65,
+          stagger: 0.03,
           ease: 'power2.inOut',
         },
-        1.35,
+        1.7,
       )
-      // 2.15–2.95 — stage 2: the two words concatenate into the root box.
-      .to(camera, { x: cam2.x, y: cam2.y, scale: cam2.scale, duration: 0.8, ease: 'power2.inOut' }, 2.15)
-      .to(midEdgeEls, { strokeDashoffset: 0, duration: 0.5, stagger: 0.05 }, 2.15)
-      .to(rootBox, { opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(2)' }, 2.35)
+      // 1.85–2.20 — the empty leaf level's edges fade behind the departing cells.
+      .to(leafEdgeEls, { opacity: 0, duration: 0.35 }, 1.85)
+      // 2.25–2.65 — the two word boxes fade in as the bracket around the
+      // arrived cells.
+      .to(midBoxes, { opacity: 1, scale: 1, duration: 0.4, stagger: 0.15, ease: 'back.out(2)' }, 2.25)
+      // 2.50–2.95 — mid edges draw, pointing both words at the root.
+      .to(midEdgeEls, { strokeDashoffset: 0, duration: 0.45, stagger: 0.05 }, 2.5)
+      // 2.85–3.65 — stage 2: camera pulls to frame the merged row, and every
+      // cell — plus both word boxes, riding down with them — descends into one row.
+      .to(camera, { x: cam2.x, y: cam2.y, scale: cam2.scale, duration: 0.8, ease: 'power2.inOut' }, 2.85)
+      .to(
+        leafBoxes,
+        { x: (slot) => toRoot(slot).x, y: (slot) => toRoot(slot).y, duration: 0.7, stagger: 0.03, ease: 'power2.inOut' },
+        2.85,
+      )
+      .to(midBoxes, { y: midDrop, duration: 0.7, ease: 'power2.inOut' }, 2.85)
       .to(
         glyphs,
         {
           left: (i) => rootGlyphCenter(i).x - GW / 2,
           top: (i) => rootGlyphCenter(i).y - GH / 2,
           duration: 0.7,
-          stagger: 0.045,
+          stagger: 0.03,
           ease: 'power2.inOut',
         },
-        2.15,
+        2.85,
       )
-      // 2.95–3.35 — boxes and edges dissolve, the merged title remains.
-      .to([...leafBoxes, ...midBoxes, rootBox], { opacity: 0, duration: 0.4 }, 2.95)
-      .to([...leafEdgeEls, ...midEdgeEls], { opacity: 0, duration: 0.3 }, 2.95)
-      .to(progress, { opacity: 0, duration: 0.3 }, 2.95)
+      // 3.00–3.35 — mid edges fade behind the descending words.
+      .to(midEdgeEls, { opacity: 0, duration: 0.35 }, 3.0)
+      // 3.40–3.80 — the root box fades in around both halves: the merge closing.
+      .to(rootBox, { opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(2)' }, 3.4)
+      // 3.70–4.10 — everything dissolves, the merged title remains.
+      .to([...leafBoxes, ...midBoxes, rootBox], { opacity: 0, duration: 0.4 }, 3.7)
+      .to([...leafEdgeEls, ...midEdgeEls], { opacity: 0, duration: 0.3 }, 3.7)
+      .to(progress, { opacity: 0, duration: 0.3 }, 3.7)
 
     return () => {
       clearTimeout(timeout)
