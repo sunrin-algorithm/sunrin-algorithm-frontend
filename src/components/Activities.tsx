@@ -249,7 +249,12 @@ export default function Activities() {
         }
 
         const rootRect = rectOf(root)
-        if (!clone) clone = cloneInto(stage, chip).clone
+        if (!clone) {
+          clone = cloneInto(stage, chip).clone
+          // cloneNode copies the wipe's inline gradient, which never quite
+          // reaches 100% before this frame -- the box it's becoming is solid.
+          clone.style.background = ''
+        }
         clone.classList.add('handoff-chip')
         chip.style.visibility = 'hidden'
         root.style.visibility = 'hidden'
