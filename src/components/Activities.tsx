@@ -91,39 +91,46 @@ export default function Activities() {
     return () => ro.disconnect()
   }, [measure])
 
-  // The DFS walk plays out as the tree scrolls past — its own trigger, separate
-  // from Handoff A below since the two no longer share a single scroll range.
+  // The DFS walk. Anchored on the root node with the exact alignment Handoff A
+  // ends on, so the tree cannot start unfolding until the incoming point has
+  // come to rest on it.
   useEffect(() => {
     const el = wrap.current
-    if (!el || reduceMotion()) {
-      if (reduceMotion()) setVisited(N)
+    if (!el) return
+    if (reduceMotion()) {
+      setVisited(N)
       return
     }
 
     const trigger = ScrollTrigger.create({
-      trigger: el,
-      start: 'top 70%',
-      end: 'top -10%',
+      trigger: el.querySelector<HTMLElement>('[data-node="0"]') ?? el,
+      start: 'center center',
+      end: () => `+=${window.innerHeight * 1.1}`,
       scrub: 0.5,
       onUpdate: (self) => setVisited(Math.round(self.progress * N)),
     })
 
     return () => trigger.kill()
-  }, [])
+  }, [layout])
 
-  // Handoff A: the "연구 활동" chip inside About's lead paragraph. The lead is
-  // pinned in place first for a short "지정" (designate) beat — a highlight
-  // wipe across the live chip, no clone yet — then released: the paragraph
-  // resumes its normal scroll while the chip decouples into a floating clone
-  // that holds at a fixed point and finally lands on the tree's root node.
+  // Handoff A: the "연구 활동" chip inside About's lead paragraph.
+  //   1. the lead pins for a short "지정" beat — a highlight wipe across the
+  //      live chip, no clone yet;
+  //   2. released, the chip decouples into a clone that keeps its own box size
+  //      and flies to the centre of the screen, where it parks;
+  //   3. it only starts shrinking once the activity section itself crosses the
+  //      centre line, and it shrinks the whole way down to the tree's root dot
+  //      — which the layout puts at that same centre point, so clone and node
+  //      coincide and the walk picks up from a point that has stopped.
   useEffect(() => {
     if (!DRAW || reduceMotion()) return
     const lead = document.querySelector<HTMLElement>('.about-lead')
     const chip = document.querySelector<HTMLElement>('.chip-seed')
     const stage = document.getElementById('stage')
+    const section = document.getElementById('activity')
     const tree = wrap.current
-    const rootNode = () => tree?.querySelector<HTMLElement>('[data-node="0"]')
-    if (!lead || !chip || !stage || !tree) return
+    const root = tree?.querySelector<HTMLElement>('[data-node="0"]')
+    if (!lead || !chip || !stage || !section || !tree || !root) return
 
     let clone: HTMLElement | null = null
 
@@ -133,8 +140,7 @@ export default function Activities() {
       chip.style.background = ''
       chip.style.color = ''
       chip.style.visibility = ''
-      const root = rootNode()
-      if (root) root.style.visibility = ''
+      root.style.visibility = ''
     }
 
     // How long (in px of scroll) the pin holds, expressed as a fraction of the
@@ -149,34 +155,58 @@ export default function Activities() {
       pin: true,
       refreshPriority: 1,
     })
-
+    // own end only has to be comfortably late.
     const drive = ScrollTrigger.create({
       trigger: lead,
       start: 'center 45%',
       endTrigger: tree,
-      end: 'top 25%',
+      // GSAP measures an endTrigger past a pin spacer as if the spacer were not
+      // there — exactly pinPx too early. Push the end back out by that much and
+      // aim well past the root, since every phase boundary below is derived
+      // from live geometry and only needs the trigger to still be active.
+      end: () => `bottom center-=${pinPx()}`,
       scrub: 0.8,
       onUpdate: (self) => {
         const p = self.progress
-        const span = self.end - self.start
-        const pinFrac = span > 0 ? Math.min(pinPx() / span, 0.5) : 0
-        const root = rootNode()
-
-        if (!root || p <= 0 || p >= 1) {
+        if (p <= 0) {
           release()
           return
         }
 
-        if (p < pinFrac) {
+        const span = self.end - self.start
+        const pinEnd = span > 0 ? Math.min(pinPx() / span, 0.4) : 0
+
+        if (p < pinEnd) {
           // Still pinned: a highlight wipe wakes the chip up in place.
           clone?.remove()
           clone = null
           root.style.visibility = ''
           chip.style.visibility = ''
-          const local = pinFrac > 0 ? p / pinFrac : 1
+          const local = pinEnd > 0 ? p / pinEnd : 1
           const pct = (local * 100).toFixed(1)
           chip.style.background = `linear-gradient(to right, var(--point) ${pct}%, transparent ${pct}%)`
           chip.style.color = local >= 0.98 ? '#fff' : ''
+          return
+        }
+
+        const vw = window.innerWidth
+        const vh = window.innerHeight
+        const y = window.scrollY
+        const rootRect = rectOf(root)
+
+        // Two live scroll offsets, converted to fractions of this trigger's own
+        // range: where the activity section's top meets the centre line (the
+        // shrink may begin), and where the root node comes to rest on it (the
+        // shrink is over). Clamped so no window can collapse to nothing.
+        const frac = (at: number) => (span > 0 ? (at - self.start) / span : 0)
+        const enter = frac(section.getBoundingClientRect().top + y - vh / 2)
+        const rest = frac(rootRect.y + rootRect.h / 2 + y - vh / 2)
+        const shrink = Math.min(Math.max(enter, pinEnd + 0.06), 0.9)
+        const finish = Math.min(Math.max(rest, shrink + 0.05), 0.98)
+        const flyEnd = pinEnd + (shrink - pinEnd) * 0.42
+
+        if (p >= finish) {
+          release()
           return
         }
 
@@ -187,30 +217,33 @@ export default function Activities() {
         chip.style.visibility = 'hidden'
         root.style.visibility = 'hidden'
 
-        const vw = window.innerWidth
-        const vh = window.innerHeight
         const chipRect = rectOf(chip)
-        const dot = centerRect(vw, vh, 11, 11)
-        const rootRect = rectOf(root)
+        // Its own box size, dead centre of the screen. A fixed screen rect, so
+        // it parks instead of being dragged along by the scroll behind it.
+        const parked = centerRect(vw, vh, chipRect.w, chipRect.h)
 
-        let rect = chipRect
+        let rect = parked
         let neon = 1
-        let textFade = 1
-        if (p < 0.55) {
-          const t = (p - pinFrac) / (0.55 - pinFrac)
-          rect = lerpRect(chipRect, dot, t)
+        let textFade = 0
+        let fade = 0
+        if (p < flyEnd) {
+          const t = (p - pinEnd) / (flyEnd - pinEnd)
+          rect = lerpRect(chipRect, parked, t)
           neon = Math.min(t / 0.4, 1)
-          textFade = Math.min(t / 0.7, 1)
-        } else if (p < 0.85) {
-          rect = dot
-        } else {
-          rect = lerpRect(dot, rootRect, (p - 0.85) / 0.15)
+        } else if (p >= shrink) {
+          // Down to the root node's own 11px, tracked live: on wide screens
+          // that lands on the very centre point the box is parked at, on the
+          // narrow rail layout it lands wherever the rail put the root.
+          const t = (p - shrink) / (finish - shrink)
+          rect = lerpRect(parked, rootRect, t)
+          textFade = Math.min(t / 0.6, 1)
+          fade = Math.max((t - 0.88) / 0.12, 0)
         }
 
         placeAt(clone, rect)
         clone.style.color = `rgba(255,255,255,${1 - textFade})`
         clone.style.boxShadow = `0 0 ${18 * neon}px ${6 * neon}px rgba(42,161,254,${0.55 * neon})`
-        clone.style.opacity = p < 0.92 ? '1' : String(1 - (p - 0.92) / 0.08)
+        clone.style.opacity = String(1 - fade)
       },
     })
 
@@ -219,7 +252,7 @@ export default function Activities() {
       drive.kill()
       release()
     }
-  }, [])
+  }, [layout])
 
   const done = visited >= N
   // Mid-walk the cursor is the DFS itself; once it rests, hovering drives it.
