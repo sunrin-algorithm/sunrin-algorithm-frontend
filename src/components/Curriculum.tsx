@@ -76,7 +76,8 @@ export default function Curriculum() {
       trigger: el,
       start: 'center center',
       end: () => `+=${window.innerHeight * 0.4}`,
-      pin: true,
+      // Grid, not just the table, so the section's index rides along with it.
+      pin: el.closest('.section-grid') ?? el,
       anticipatePin: 1,
       refreshPriority: 1,
     })

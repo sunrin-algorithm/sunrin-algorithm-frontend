@@ -123,7 +123,10 @@ export default function Activities() {
       trigger: root,
       start: 'center center',
       end: () => `+=${window.innerHeight * HOLD_VH}`,
-      pin: el,
+      // The whole section grid, not just the tree: the section's own [03] index
+      // is a sibling of the body, so pinning the body alone would leave the
+      // number to scroll off on its own.
+      pin: el.closest('.section-grid') ?? el,
       anticipatePin: 1,
       // Both pins must refresh before anything below them measures, earliest
       // first, or GSAP sizes later triggers as if the spacers were not there.
