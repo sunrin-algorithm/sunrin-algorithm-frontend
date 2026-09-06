@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { CURRICULUM } from '../content'
+import { WALK_VH } from './Activities'
 import { centerRect, cloneInto, lerpRect, placeAt, rectOf } from '../lib/handoff'
 import { ScrollTrigger, reduceMotion } from '../lib/motion'
 import DpGrid from './DpGrid'
@@ -47,6 +48,7 @@ export default function Curriculum() {
     if (!el || reduceMotion()) return
 
     const card = document.querySelector<HTMLElement>('.activity-item:first-child')
+    const treeRoot = document.querySelector<HTMLElement>('#activity [data-node="0"]')
     const stage = document.getElementById('stage')
     const grid = () => el.querySelector<HTMLElement>('.dp')
     if (!card || !stage) return
@@ -68,8 +70,10 @@ export default function Curriculum() {
     const MOVE_END = 0.34
 
     const drive = ScrollTrigger.create({
-      trigger: card,
-      start: 'top 60%',
+      // Anchored on the tree's root node, offset by the exact length of the DFS
+      // walk: the card cannot light up until the last branch has unfolded.
+      trigger: treeRoot ?? card,
+      start: () => `center center-=${window.innerHeight * WALK_VH}`,
       endTrigger: el,
       end: 'top 45%',
       scrub: 0.8,

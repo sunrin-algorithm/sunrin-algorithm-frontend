@@ -229,6 +229,43 @@ body {
   gap: 0.75rem;
 }
 
+/* 소개's figures ride in a right-hand column beside the prose instead of a full
+   width band under it, so the tree starts the moment the copy ends. */
+@media (min-width: 901px) {
+  #about .section-body {
+    grid-column: 3 / span 6;
+  }
+
+  #about .section-bleed {
+    grid-column: 10 / -1;
+    grid-row: 1;
+    margin-top: 0;
+    align-self: start;
+  }
+
+  #about .stats {
+    grid-template-columns: 1fr;
+  }
+
+  #about .stat {
+    border-left: 0;
+    padding-left: 0;
+    border-top: var(--rule) solid var(--line-soft);
+  }
+
+  #about .stat:first-child {
+    border-top: 0;
+  }
+}
+
+/* Handoff B needs room after the tree has finished unfolding: the 정규 수업 card
+   flies out, parks lit at the centre of the screen, and only then does the
+   calendar arrive underneath it. That beat is pure scroll distance, so the
+   section buys it up front rather than pinning anything. */
+#curriculum {
+  padding-top: 150vh;
+}
+
 @media (max-width: 900px) {
   .section-index,
   .section-body,

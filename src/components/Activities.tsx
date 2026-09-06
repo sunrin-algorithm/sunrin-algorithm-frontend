@@ -18,6 +18,10 @@ const EDGES = [1, 2, 3, 4, 5, 6].map((id) => ({ from: parentOf(id) as number, to
 /** Only the fixed 7-node shape can be drawn; any other count falls back to a plain grid. */
 const DRAW = ACTIVITIES.length === 4
 
+/** Scroll length of the DFS walk, in viewport heights. Curriculum reads it to
+    know when the tree has finished unfolding and its own handoff may begin. */
+export const WALK_VH = 1.1
+
 const labelOf = (id: number) =>
   id === 0 ? '활동' : id < 3 ? ACTIVITY_BRANCHES[id - 1] : ACTIVITIES[id - 3].title
 
@@ -105,7 +109,7 @@ export default function Activities() {
     const trigger = ScrollTrigger.create({
       trigger: el.querySelector<HTMLElement>('[data-node="0"]') ?? el,
       start: 'center center',
-      end: () => `+=${window.innerHeight * 1.1}`,
+      end: () => `+=${window.innerHeight * WALK_VH}`,
       scrub: 0.5,
       onUpdate: (self) => setVisited(Math.round(self.progress * N)),
     })
@@ -131,6 +135,10 @@ export default function Activities() {
     const tree = wrap.current
     const root = tree?.querySelector<HTMLElement>('[data-node="0"]')
     if (!lead || !chip || !stage || !section || !tree || !root) return
+
+    // Read once: the clone is reparented into #stage, where it would otherwise
+    // inherit the stage font rather than the lead paragraph's.
+    const baseFont = parseFloat(getComputedStyle(chip).fontSize)
 
     let clone: HTMLElement | null = null
 
@@ -218,9 +226,12 @@ export default function Activities() {
         root.style.visibility = 'hidden'
 
         const chipRect = rectOf(chip)
-        // Its own box size, dead centre of the screen. A fixed screen rect, so
-        // it parks instead of being dragged along by the scroll behind it.
-        const parked = centerRect(vw, vh, chipRect.w, chipRect.h)
+        // Blown up and parked dead centre of the screen. A fixed screen rect,
+        // so it parks instead of being dragged along by the scroll behind it.
+        // At reading size a lone box mid-viewport reads as a stray tooltip, so
+        // it grows -- bounded so it can never outgrow a narrow screen.
+        const scale = Math.min(2.6, (vw * 0.74) / chipRect.w)
+        const parked = centerRect(vw, vh, chipRect.w * scale, chipRect.h * scale)
 
         let rect = parked
         let neon = 1
@@ -241,6 +252,8 @@ export default function Activities() {
         }
 
         placeAt(clone, rect)
+        // The type tracks the box exactly, so the padding (set in em) does too.
+        clone.style.fontSize = `${baseFont * (rect.w / chipRect.w)}px`
         clone.style.color = `rgba(255,255,255,${1 - textFade})`
         clone.style.boxShadow = `0 0 ${18 * neon}px ${6 * neon}px rgba(42,161,254,${0.55 * neon})`
         clone.style.opacity = String(1 - fade)
