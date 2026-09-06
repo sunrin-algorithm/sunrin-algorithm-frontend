@@ -582,6 +582,15 @@ html.act1-live .corners {
   border-radius: 3px;
 }
 
+/* Handoff C's clones: the 3 surviving dp cells flying to the K3 nodes. */
+.handoff-dot {
+  position: absolute;
+  z-index: 31;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--point);
+}
+
 .about-body {
   margin-top: clamp(2rem, 4vw, 3.25rem);
   display: grid;

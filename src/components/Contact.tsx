@@ -1,8 +1,17 @@
+import { useEffect, useRef } from 'react'
 import { CONTACT, FOOTER } from '../content'
+import { revealLines } from '../lib/motion'
 import Section from './Section'
 import ThemeToggle from './ThemeToggle'
 
 export default function Contact() {
+  const footer = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    if (!footer.current) return
+    return revealLines(footer.current)
+  }, [])
+
   return (
     <>
       <Section id="contact" n="05" label="연락">
@@ -26,9 +35,9 @@ export default function Contact() {
         </div>
       </Section>
 
-      <footer className="footer shell">
-        <p className="footer-mark" aria-hidden="true">
-          {FOOTER.mark}
+      <footer className="footer shell" ref={footer}>
+        <p className="footer-mark line" aria-hidden="true">
+          <span className="line-i">{FOOTER.mark}</span>
         </p>
         {/* masked so the logo inherits the theme's brand colour */}
         <div className="logo-full" role="img" aria-label="SHARC 알고리즘연구부 로고" />

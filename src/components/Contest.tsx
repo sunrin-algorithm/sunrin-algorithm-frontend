@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { CONTEST } from '../content'
-import { gsap, reduceMotion } from '../lib/motion'
+import { cloneInto, lerpRect, placeAt, rectOf } from '../lib/handoff'
+import { ScrollTrigger, gsap, reduceMotion } from '../lib/motion'
 import Section from './Section'
 
 /** Three members, every pair talking to each other: K3. */
@@ -14,6 +15,16 @@ const PAIRS: [number, number][] = [
   [1, 2],
   [0, 2],
 ]
+
+/** Maps an svg-user-space point to screen px, honoring xMidYMid-meet letterboxing. */
+function svgPointToScreen(svg: SVGSVGElement, x: number, y: number) {
+  const rect = svg.getBoundingClientRect()
+  const vb = svg.viewBox.baseVal
+  const scale = Math.min(rect.width / vb.width, rect.height / vb.height)
+  const offX = rect.left + (rect.width - vb.width * scale) / 2
+  const offY = rect.top + (rect.height - vb.height * scale) / 2
+  return { x: offX + (x - vb.x) * scale, y: offY + (y - vb.y) * scale, scale }
+}
 
 function TeamViz() {
   const svg = useRef<SVGSVGElement>(null)
@@ -43,6 +54,63 @@ function TeamViz() {
     return () => {
       timeline.scrollTrigger?.kill()
       timeline.kill()
+    }
+  }, [])
+
+  // Handoff C: the 3 dp cells Curriculum's drain leaves standing fly here and
+  // land as this graph's 3 nodes, right as TeamViz's own entrance takes over
+  // (its trigger starts at the same 'top 85%' this one ends on).
+  useEffect(() => {
+    const el = svg.current
+    if (!el || reduceMotion()) return
+
+    const contest = document.getElementById('contest')
+    const stage = document.getElementById('stage')
+    if (!contest || !stage) return
+
+    const cellFor = (r: number) => document.querySelector<HTMLElement>(`.dp-cell[data-rank="${r}"]`)
+    const clones: (HTMLElement | null)[] = MEMBERS.map(() => null)
+
+    const release = () => {
+      clones.forEach((c, i) => {
+        c?.remove()
+        clones[i] = null
+      })
+    }
+
+    const trigger = ScrollTrigger.create({
+      trigger: contest,
+      start: 'top 160%',
+      end: 'top 85%',
+      scrub: 0.4,
+      onUpdate: (self) => {
+        const p = self.progress
+        if (p <= 0 || p >= 1) {
+          release()
+          return
+        }
+
+        MEMBERS.forEach((m, i) => {
+          const cell = cellFor(i)
+          if (!cell) return
+          if (!clones[i]) clones[i] = cloneInto(stage, cell).clone
+          const clone = clones[i] as HTMLElement
+          clone.classList.add('handoff-dot')
+          cell.style.visibility = 'hidden'
+
+          const cellRect = rectOf(cell)
+          const target = svgPointToScreen(el, m.x, m.y)
+          const size = 40 * target.scale
+          const dot = { x: target.x - size / 2, y: target.y - size / 2, w: size, h: size }
+          placeAt(clone, lerpRect(cellRect, dot, p))
+          clone.style.opacity = p > 0.85 ? String(1 - (p - 0.85) / 0.15) : '1'
+        })
+      },
+    })
+
+    return () => {
+      trigger.kill()
+      release()
     }
   }, [])
 
