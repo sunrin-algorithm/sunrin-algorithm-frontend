@@ -323,6 +323,12 @@ html.act1-live .corners {
   pointer-events: none;
 }
 
+/* Declarative backstop -- doesn't depend on JS timing to hold the lock. */
+html.act1-live,
+html.act1-live body {
+  overflow: hidden;
+}
+
 .brand-corner {
   display: flex;
   align-items: center;
