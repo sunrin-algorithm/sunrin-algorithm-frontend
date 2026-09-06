@@ -24,6 +24,11 @@ export default function Curriculum() {
     const section = document.getElementById('activity')
     const stage = document.getElementById('stage')
     const grid = () => el.querySelector<HTMLElement>('.dp')
+    // The formula, the FILLED counter and the note under them all explain the
+    // calendar, so they arrive with it rather than sitting under an empty space
+    // waiting for it.
+    const blurbs = () => el.querySelectorAll<HTMLElement>('.dp-legend, .curriculum-note')
+    const fadeBlurbs = (o: string) => blurbs().forEach((b) => (b.style.opacity = o))
     if (!card || !stage) return
 
     let clone: HTMLElement | null = null
@@ -37,19 +42,22 @@ export default function Curriculum() {
         g.style.opacity = ''
         g.style.pointerEvents = ''
       }
+      fadeBlurbs('')
     }
 
-    /** Beat lengths in viewport heights: travel, resize, crossfade. */
+    /** Beat lengths in viewport heights: travel, resize, crossfade, and the
+        extra the finished calendar lingers on top of the shared settle. */
     const MOVE = 0.6
     const GROW = 0.55
     const FADE = 0.25
+    const LINGER = 0.6
 
-    // 달력 아주 조금만 고정: long enough for the box to finish becoming the
-    // calendar, plus the settle where the finished calendar just stands there.
+    // Held long enough for the box to finish becoming the calendar, for the
+    // grid to fill itself in while it stands there, and for the settle after.
     const lock = ScrollTrigger.create({
       trigger: el,
       start: 'center center',
-      end: () => `+=${window.innerHeight * (FADE + SETTLE_VH)}`,
+      end: () => `+=${window.innerHeight * (FADE + LINGER + SETTLE_VH)}`,
       // Grid, not just the table, so the section's index rides along with it.
       pin: el.closest('.section-grid') ?? el,
       anticipatePin: 1,
@@ -135,6 +143,7 @@ export default function Curriculum() {
         clone.style.boxShadow = `0 0 ${18 * neon}px ${6 * neon}px rgba(42,161,254,${0.55 * neon})`
         clone.style.opacity = String(1 - gridFade)
         g.style.opacity = String(gridFade)
+        fadeBlurbs(String(gridFade))
       },
     })
 
