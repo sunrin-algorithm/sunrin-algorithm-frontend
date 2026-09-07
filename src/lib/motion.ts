@@ -10,14 +10,6 @@ export { gsap, ScrollTrigger }
 export const reduceMotion = () =>
   window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-/**
- * How long, in viewport heights, a section holds the screen its animation just
- * produced before letting go. Every pinned section spends this at the tail of
- * its pin, so the finished picture gets a beat to be looked at instead of being
- * yanked away on the frame it completes.
- */
-export const SETTLE_VH = 0.32
-
 /** Clears the fixed corner bar — same 5.5rem as .section's scroll-margin-top. */
 const NAV_BAR = 88
 
@@ -79,9 +71,18 @@ export function scrollToId(id: string) {
   const target = document.getElementById(id)
   if (!target) return
   const done = doneAt.get(id)?.()
-  if (lenis) lenis.scrollTo(done || target, { offset: -8, duration: 1.15 })
-  else if (done) window.scrollTo(0, done - 8)
-  else target.scrollIntoView({ behavior: 'auto', block: 'start' })
+  const to = done || target
+  if (!lenis) {
+    if (done) window.scrollTo(0, done - 8)
+    else target.scrollIntoView({ behavior: 'auto', block: 'start' })
+    return
+  }
+  // A smooth jump scrubs every trigger it crosses on the way, so a far one
+  // plays several screens of animation at speed -- and, going up, backwards.
+  // Past a couple of viewports that reads as noise, so go straight there.
+  const y = typeof to === 'number' ? to : to.getBoundingClientRect().top + window.scrollY
+  const far = Math.abs(y - window.scrollY) > window.innerHeight * 1.5
+  lenis.scrollTo(to, { offset: -8, duration: 1.15, immediate: far })
 }
 
 /*

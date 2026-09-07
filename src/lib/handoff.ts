@@ -51,3 +51,14 @@ export function cloneInto(stage: HTMLElement, src: HTMLElement) {
     destroy: () => clone.remove(),
   }
 }
+
+/**
+ * How far a pin has pushed its element up the page at scroll offset `y`:
+ * nothing before it engages, the travel so far while it holds, and the full
+ * pin distance once it has let go. Subtracting this from a live rect recovers
+ * the position the element holds while pinned, which is the same number
+ * whichever direction the scroll came from.
+ */
+export function pinShift(y: number, start: number, end: number) {
+  return Math.min(Math.max(y - start, 0), Math.max(end - start, 0))
+}

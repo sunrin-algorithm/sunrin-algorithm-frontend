@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { ACTIVITIES, ACTIVITY_BRANCHES } from '../content'
-import { centerRect, cloneInto, lerpRect, placeAt, rectOf } from '../lib/handoff'
-import { SETTLE_VH, ScrollTrigger, fitStart, reduceMotion, registerDoneAt } from '../lib/motion'
+import { ScrollTrigger, fitStart, reduceMotion, registerDoneAt } from '../lib/motion'
+import { peakProgress } from '../lib/peak'
 import { dfsOrder, parentOf, pathToRoot } from '../lib/tree'
-import { aboutHoldStart } from './About'
 import Section from './Section'
 
 /**
@@ -19,23 +18,26 @@ const EDGES = [1, 2, 3, 4, 5, 6].map((id) => ({ from: parentOf(id) as number, to
 /** Only the fixed 7-node shape can be drawn; any other count falls back to a plain grid. */
 const DRAW = ACTIVITIES.length === 4
 
-/** Scroll length of the DFS walk, in viewport heights. */
-const WALK_VH = 0.9
+/**
+ * How much of the tree's approach to the centre of the screen the DFS walk
+ * spends unfolding, as a fraction of it. Under 1 on purpose: the walk finishes
+ * before the tree arrives, so what stops in the middle of the screen is a
+ * complete tree rather than one still drawing itself.
+ */
+const WALK_IN = 0.68
 
-/** Length of the beat where Curriculum's card peels off the finished tree. */
-const PEEL_VH = 0.6
+/**
+ * Scroll length of the hold that follows, in viewport heights. Short on
+ * purpose: the merge that turns the four cards into 커리큘럼's calendar starts
+ * on the frame this engages and keeps running after it lets go, on clones that
+ * are already off the layout — so holding the grid any longer than it takes
+ * the cards to come off their marks just reads as the page having stopped.
+ */
+const HOLD_VH = 0.6
 
-/** How far into the tree's hold Curriculum's card may start peeling off: after
-    the walk has drawn every branch, and after the finished tree has held still
-    for its settle. Curriculum reads this. */
-export const PEEL_AT_VH = WALK_VH + SETTLE_VH
-
-/** Total length of the tree's hold — walk, settle, peel. Pinned for all of it. */
-const HOLD_VH = PEEL_AT_VH + PEEL_VH
-
-/** Where the tree's pin engages, and where it lets go. Handoff A lands its
-    point on the start and Curriculum keys Handoff B's clamp off the end; both
-    would otherwise have to measure a trigger inside a pinned element, which
+/** Where the tree's pin engages and lets go. Curriculum starts the merge at
+    the first and needs both to work out where the cards sit while pinned;
+    measuring them there would mean a trigger inside a pinned element, which
     reads as a screen position, not a document one.
     ponytail: module singleton -- the page only ever has one Activities. */
 let treeHold: ScrollTrigger | null = null
@@ -115,10 +117,9 @@ export default function Activities() {
     return () => ro.disconnect()
   }, [measure])
 
-  // The tree holds still while it unfolds: once its root reaches the centre of
-  // the screen the whole thing pins there, the walk runs, Curriculum's card
-  // peels off it, and only then does it let go and scroll away. The pin spacer
-  // is also what buys the scroll length for all of that.
+  // The tree unfolds out of its root dot on the way in and is finished by the
+  // time it reaches the middle of the screen, where the grid pins so the merge
+  // that follows has something standing still to take apart.
   useEffect(() => {
     const el = wrap.current
     if (!el) return
@@ -139,171 +140,42 @@ export default function Activities() {
       end: () => `+=${window.innerHeight * HOLD_VH}`,
       pin: grid,
       anticipatePin: 1,
-      // Both pins must refresh before anything below them measures, earliest
-      // first, or GSAP sizes later triggers as if the spacers were not there.
+      // Both remaining pins must refresh before anything below them measures,
+      // earliest first, or GSAP sizes later triggers as if the spacers were
+      // not there.
       refreshPriority: 4,
-      // The walk rides the pin's own progress instead of a second trigger: a
-      // separate one would have to measure something inside the pin, which
-      // reads as a screen position rather than a document one.
-      onUpdate: (self) =>
-        setVisited(Math.round(Math.min((self.progress * HOLD_VH) / WALK_VH, 1) * N)),
     })
     treeHold = pin
-    const unregister = registerDoneAt('activity', () => pin.start + window.innerHeight * WALK_VH)
+
+    // The walk rides the approach, not the pin: it has to be over by the time
+    // the pin engages, so its end *is* the pin's start and the two can never
+    // drift apart however the layout moves.
+    const peak = peakProgress()
+    const walk = ScrollTrigger.create({
+      trigger: grid,
+      start: 'top bottom',
+      end: fitStart(grid),
+      scrub: 0.3,
+      refreshPriority: 4,
+      // Latched: rewinding the walk halfway leaves a tree with some of its
+      // edges missing, which reads as broken rather than as going backwards.
+      // Leaving the section entirely is what arms it to play again.
+      onUpdate: (self) =>
+        setVisited(Math.round(peak.push(Math.min(self.progress / WALK_IN, 1)) * N)),
+      onLeaveBack: () => {
+        peak.reset()
+        setVisited(0)
+      },
+    })
+
+    // The tree is complete on the frame the pin takes over.
+    const unregister = registerDoneAt('activity', () => pin.start)
 
     return () => {
       treeHold = null
       unregister()
+      walk.kill()
       pin.kill()
-    }
-  }, [layout])
-
-  // Handoff A: the "연구 활동" chip inside About's lead paragraph.
-  //   1. 소개 comes to its brief stop and a highlight wipe crosses the live
-  //      chip in place, still in its sentence, with nothing moving under it;
-  //   2. it decouples into a clone, blows up, and flies to the centre of the
-  //      screen, where it parks while 소개 lets go and travels up past it;
-  //   3. it shrinks back down to a point, timed to land exactly as the tree's
-  //      root reaches that same centre and the tree pins there.
-  useEffect(() => {
-    if (!DRAW || reduceMotion()) return
-    const lead = document.querySelector<HTMLElement>('.about-lead')
-    const chip = document.querySelector<HTMLElement>('.chip-seed')
-    const stage = document.getElementById('stage')
-    const tree = wrap.current
-    const root = tree?.querySelector<HTMLElement>('[data-node="0"]')
-    if (!lead || !chip || !stage || !tree || !root) return
-
-    // Read once: the clone is reparented into #stage, where it would otherwise
-    // inherit the stage font rather than the lead paragraph's.
-    const baseFont = parseFloat(getComputedStyle(chip).fontSize)
-
-    let clone: HTMLElement | null = null
-
-    const release = () => {
-      clone?.remove()
-      clone = null
-      chip.style.background = ''
-      chip.style.color = ''
-      chip.style.visibility = ''
-      root.style.visibility = ''
-    }
-
-    // Lengths of the beats, in viewport heights. The shrink is what's left
-    // over: whatever distance sits between 소개 and the tree, past the wipe,
-    // fly and the (capped) park, is spent shrinking rather than standing still.
-    const WIPE = 0.4
-    const FLY = 0.5
-    const PARK = 0.2
-
-    const drive = ScrollTrigger.create({
-      // The section, never the paragraph inside it: 소개's own pin is applied
-      // first, and anything inside a pin measures as a screen position.
-      // Deliberately long. Every boundary below is a live document offset
-      // converted into a fraction of this range, so the end only has to be
-      // comfortably past the point where the tree takes over.
-      trigger: document.getElementById('about') ?? lead,
-      start: 'top top',
-      end: () => `+=${window.innerHeight * 4}`,
-      scrub: 0.8,
-      onUpdate: (self) => {
-        const p = self.progress
-        const span = self.end - self.start
-        if (p <= 0 || span <= 0) {
-          release()
-          return
-        }
-
-        const vw = window.innerWidth
-        const vh = window.innerHeight
-        /** A document scroll offset as a fraction of this trigger's range. */
-        const at = (y: number) => (y - self.start) / span
-
-        // Nothing lights up until 소개 has stopped: the wipe wants a sentence
-        // that is standing still.
-        const begin = at(aboutHoldStart())
-        if (!aboutHoldStart() || p < begin) {
-          release()
-          return
-        }
-        const wipeEnd = begin + (vh * WIPE) / span
-
-        if (p < wipeEnd) {
-          // Still inline: a highlight wipe crosses the chip where it stands,
-          // drifting up with its own paragraph.
-          clone?.remove()
-          clone = null
-          root.style.visibility = ''
-          chip.style.visibility = ''
-          const local = (p - begin) / (wipeEnd - begin)
-          const pct = (local * 100).toFixed(1)
-          chip.style.background = `linear-gradient(to right, var(--point) ${pct}%, transparent ${pct}%)`
-          chip.style.color = local >= 0.98 ? '#fff' : ''
-          return
-        }
-
-        // The shrink has to end on the frame the tree's pin engages, so the
-        // point and the root node are never both in flight.
-        const landing = treeHold?.start || self.start + vh * 2
-        const finish = Math.min(at(landing), 0.999)
-        const flyEnd = Math.min(wipeEnd + (vh * FLY) / span, finish)
-        const parkEnd = Math.min(flyEnd + (vh * PARK) / span, finish - 0.001)
-        const shrink = Math.max(parkEnd, flyEnd + 0.01)
-
-        if (p >= finish) {
-          release()
-          return
-        }
-
-        const rootRect = rectOf(root)
-        if (!clone) {
-          clone = cloneInto(stage, chip).clone
-          // cloneNode copies the wipe's inline gradient, which never quite
-          // reaches 100% before this frame -- the box it's becoming is solid.
-          clone.style.background = ''
-        }
-        clone.classList.add('handoff-chip')
-        chip.style.visibility = 'hidden'
-        root.style.visibility = 'hidden'
-
-        const chipRect = rectOf(chip)
-        // Blown up and parked dead centre of the screen. A fixed screen rect,
-        // so it parks instead of being dragged along by the scroll behind it.
-        // At reading size a lone box mid-viewport reads as a stray tooltip, so
-        // it grows -- bounded so it can never outgrow a narrow screen.
-        const scale = Math.min(2.6, (vw * 0.74) / chipRect.w)
-        const parked = centerRect(vw, vh, chipRect.w * scale, chipRect.h * scale)
-
-        let rect = parked
-        let neon = 1
-        let textFade = 0
-        let fade = 0
-        if (p < flyEnd) {
-          const t = (p - wipeEnd) / (flyEnd - wipeEnd)
-          rect = lerpRect(chipRect, parked, t)
-          neon = Math.min(t / 0.4, 1)
-        } else if (p >= shrink) {
-          // Down to the root node's own 11px, tracked live: on wide screens
-          // that lands on the very centre point the box is parked at, on the
-          // narrow rail layout it lands wherever the rail put the root.
-          const t = (p - shrink) / (finish - shrink)
-          rect = lerpRect(parked, rootRect, t)
-          textFade = Math.min(t / 0.6, 1)
-          fade = Math.max((t - 0.88) / 0.12, 0)
-        }
-
-        placeAt(clone, rect)
-        // The type tracks the box exactly, so the padding (set in em) does too.
-        clone.style.fontSize = `${baseFont * (rect.w / chipRect.w)}px`
-        clone.style.color = `rgba(255,255,255,${1 - textFade})`
-        clone.style.boxShadow = `0 0 ${18 * neon}px ${6 * neon}px rgba(42,161,254,${0.55 * neon})`
-        clone.style.opacity = String(1 - fade)
-      },
-    })
-
-    return () => {
-      drive.kill()
-      release()
     }
   }, [layout])
 

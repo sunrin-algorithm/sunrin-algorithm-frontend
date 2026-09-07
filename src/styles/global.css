@@ -19,6 +19,7 @@
     sans-serif;
   --pixel: Galmuri9, Galmuri11, monospace;
   --pixel-mono: GalmuriMono9, Galmuri9, monospace;
+  --pixel-title: 'DungGeunMo', GalmuriMono9, monospace;
 
   --gutter: clamp(1.25rem, 4vw, 4rem);
   --rule: 1px;
@@ -215,16 +216,21 @@ body {
   grid-column: 3 / span 9;
 }
 
-/* Handoff A parks its dot on the dead centre of the screen and the tree's root
-   node has to meet it there, so this one section drops the left index column
-   and spans the whole grid — the shell is centred, so the midpoint of the four
-   leaves (which is where the root sits) lands on the viewport midline. */
+/* 활동 and 커리큘럼 are one continuous move: the four cards merge into the
+   calendar and the index changes in place over the top of it. Both sections
+   therefore drop the left index column and run it as a row across the top, so
+   the swap happens between two identically-placed indexes, and so the midpoint
+   of the four leaves (where the tree's root sits) lands on the viewport
+   midline the merge parks its bar on. */
 #activity .section-index,
-#activity .section-body {
+#activity .section-body,
+#curriculum .section-index,
+#curriculum .section-body {
   grid-column: 1 / -1;
 }
 
-#activity .section-index .sticky {
+#activity .section-index .sticky,
+#curriculum .section-index .sticky {
   flex-direction: row;
   gap: 0.75rem;
 }
@@ -255,20 +261,6 @@ body {
 
   #about .stat:first-child {
     border-top: 0;
-  }
-}
-
-/* Handoff A parks the chip at the centre of the screen for a beat before the
-   tree arrives underneath it, and that beat is pure scroll distance. 소개 keeps
-   travelling up through it, so the gap is never empty. */
-#activity {
-  padding-top: 55vh;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  /* No handoffs run, so the runway would just be an empty screen. */
-  #activity {
-    padding-top: clamp(6rem, 12vh, 9rem);
   }
 }
 
@@ -494,6 +486,7 @@ html.act1-live body {
 }
 
 .act1-static-ko {
+  font-family: var(--pixel-title);
   font-size: clamp(1.1rem, 2.4vw, 1.75rem);
   font-weight: 600;
   letter-spacing: -0.02em;
@@ -531,7 +524,7 @@ html.act1-live body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: var(--pixel-mono);
+  font-family: var(--pixel-title);
   font-size: 2.5rem;
   color: var(--ink);
 }
@@ -585,27 +578,15 @@ html.act1-live body {
   transition: color 0.2s ease;
 }
 
-/* Handoff A's clone: About's chip flying to Activities' tree root. Sized and
-   positioned imperatively per scroll frame — see Activities.tsx. */
-.handoff-chip {
-  position: absolute;
-  z-index: 31;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border-radius: 3px;
-  background: var(--point);
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-/* Handoff B's clone: the "정규 수업" card descending into the calendar. */
-.handoff-card {
+/* The merge's clones: 활동's four cards closing up into one bar and resizing
+   into 커리큘럼's calendar, and the section index that changes over the top of
+   them. Sized and positioned imperatively per scroll frame — see
+   Curriculum.tsx. */
+.handoff-card,
+.handoff-index {
   position: absolute;
   z-index: 31;
   overflow: hidden;
-  border-radius: 3px;
 }
 
 .about-body {

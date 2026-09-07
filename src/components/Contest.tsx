@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { CONTEST } from '../content'
-import { SETTLE_VH, ScrollTrigger, fitStart, gsap, reduceMotion, registerDoneAt } from '../lib/motion'
+import { gsap, reduceMotion } from '../lib/motion'
 import Section from './Section'
 
 /** Three members, every pair talking to each other: K3. */
@@ -15,26 +15,21 @@ const PAIRS: [number, number][] = [
   [0, 2],
 ]
 
-/** How much of the pin the graph spends assembling; the rest of it is settle. */
-const LAND_VH = 0.3
-
 function TeamViz() {
   const svg = useRef<SVGSVGElement>(null)
 
-  // The graph assembles with nothing moving under it: once the svg reaches the
-  // centre of the screen the whole section grid pins there, the nodes pop in and
-  // the edges draw across, Handoff C's dots land on them, and then the finished
-  // K3 just stands there for a beat before the section is let go.
+  // The graph assembles once, on its way in: it is the last thing on screen
+  // that moves under scroll, and the section is short enough that by the time
+  // the svg is three quarters of the way up the page it has finished.
   useEffect(() => {
     const el = svg.current
     if (!el || reduceMotion()) return
 
-    // Paused, driven by the pin's own progress: a second scrollTrigger anchored
-    // on the svg would measure a screen position, not a document one, once the
-    // pin around it has been applied.
-    const timeline = gsap.timeline({ paused: true })
     // fromTo, not from: StrictMode remounts and from() would read the
     // already-zeroed opacity as its end value.
+    const timeline = gsap.timeline({
+      scrollTrigger: { trigger: el.closest('.section-grid') ?? el, start: 'top 76%', once: true },
+    })
     timeline
       .fromTo(
         el.querySelectorAll('.team-node'),
@@ -48,26 +43,8 @@ function TeamViz() {
         '-=0.2',
       )
 
-    // The grid, so the section's own [04] index is held alongside the graph,
-    // and so the pin fits the whole grid on screen rather than just the svg.
-    const grid = el.closest<HTMLElement>('.section-grid') ?? el
-    const span = LAND_VH + SETTLE_VH
-    const hold = ScrollTrigger.create({
-      trigger: grid,
-      start: fitStart(grid),
-      end: () => `+=${window.innerHeight * span}`,
-      pin: grid,
-      anticipatePin: 1,
-      // Pins refresh top-down, earliest first, or GSAP measures the later ones
-      // as if the earlier spacers were not there.
-      refreshPriority: 2,
-      onUpdate: (self) => timeline.progress(Math.min((self.progress * span) / LAND_VH, 1)),
-    })
-    const unregister = registerDoneAt('contest', () => hold.start + window.innerHeight * LAND_VH)
-
     return () => {
-      unregister()
-      hold.kill()
+      timeline.scrollTrigger?.kill()
       timeline.kill()
     }
   }, [])

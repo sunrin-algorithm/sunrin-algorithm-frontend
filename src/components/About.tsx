@@ -1,14 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { ABOUT } from '../content'
-import { SETTLE_VH, ScrollTrigger, fitStart, gsap, reduceMotion, registerDoneAt } from '../lib/motion'
+import { gsap, reduceMotion } from '../lib/motion'
 import Section from './Section'
-
-/** Where 소개's brief stop engages. Activities' Handoff A keys the chip's wipe
-    to it rather than to the lead paragraph, which reads as a screen position
-    rather than a document one once this pin has been applied.
-    ponytail: module singleton -- the page only ever has one About. */
-let aboutHold: ScrollTrigger | null = null
-export const aboutHoldStart = () => aboutHold?.start ?? 0
 
 function Figure({ value, suffix }: { value: number; suffix: string }) {
   const el = useRef<HTMLSpanElement>(null)
@@ -52,34 +45,6 @@ function Figure({ value, suffix }: { value: number; suffix: string }) {
 }
 
 export default function About() {
-  // 소개도 조금만 멈췄다 다시 떠내려감: the section comes to a stop just long
-  // enough for the chip in its lead to light up and lift off, then lets go and
-  // drifts away underneath the chip, which by then is parked on the stage.
-  useEffect(() => {
-    if (reduceMotion()) return
-    const grid = document.querySelector<HTMLElement>('#about .section-grid')
-    if (!grid) return
-
-    const pin = ScrollTrigger.create({
-      trigger: grid,
-      start: fitStart(grid),
-      end: () => `+=${window.innerHeight * SETTLE_VH}`,
-      pin: grid,
-      anticipatePin: 1,
-      // First pin down the page, so the highest priority: GSAP reverts every
-      // spacer before measuring, and everything below needs this one settled.
-      refreshPriority: 5,
-    })
-    aboutHold = pin
-    const unregister = registerDoneAt('about', () => pin.start)
-
-    return () => {
-      aboutHold = null
-      unregister()
-      pin.kill()
-    }
-  }, [])
-
   return (
     <Section
       id="about"
