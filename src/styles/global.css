@@ -338,7 +338,7 @@ html.act1-live body {
    size, so the icon gets a hairline frame. Dark mode's near-white fill
    already reads fine on the dark paper -- no frame there. */
 :root:not([data-theme='dark']) .brand-corner .mark {
-  outline: 1px solid var(--ink);
+  outline: 2px solid #000;
   outline-offset: 1px;
 }
 
@@ -1200,6 +1200,15 @@ html.act1-live body {
   background: var(--logo);
   -webkit-mask: url(/logo.svg) left center / contain no-repeat;
   mask: url(/logo.svg) left center / contain no-repeat;
+}
+
+/* Light mode only, and outline rather than the box-shadow every other block
+   uses -- box-shadow paints behind the element and would show through the
+   mask's ring/teeth/fin holes as a black disc (see above); outline sits
+   outside the box and doesn't touch what's inside it. */
+:root:not([data-theme='dark']) .footer .logo-full {
+  outline: 4px solid #000;
+  outline-offset: 2px;
 }
 
 .footer .meta {
