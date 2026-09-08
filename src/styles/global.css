@@ -14,7 +14,8 @@
   /* Light mode paints the logo blue, dark mode near-white. Deeper than
      --brand: the lockup is mostly hairlines, and #4d7ce3 sits at 3.6:1 on
      paper, which is where "로고가 안 보인다" came from. This is 6.1:1. */
-  --logo: #2a55b8;
+  --logo-blue: #2a55b8;
+  --logo: var(--logo-blue);
   /* --line is opaque now (block borders); --edge is the old translucent
      value, kept for SVG strokes that need to fade into the background. */
   --line: var(--ink);
@@ -29,10 +30,8 @@
   --pixel-title: 'DungGeunMo', GalmuriMono9, monospace;
 
   --gutter: clamp(0.5rem, 1vw, 0.85rem);
-  --rule: 4px;
+  --rule: 3px;
   --rule-thin: 2px;
-  --shadow: 10px 10px 0 var(--ink);
-  --shadow-lift: 16px 16px 0 var(--ink);
 }
 
 :root[data-theme='dark'] {
@@ -193,64 +192,42 @@ body {
 }
 
 .section-bleed {
-  grid-column: 3 / -1;
+  grid-column: 3 / 11;
   margin-top: clamp(3rem, 6vh, 5rem);
 }
 
-.section-bleed:has(> .curriculum-table) {
-  grid-column: 2 / 12;
-}
-
+/* 12 columns, body/bleed indented on both sides -- sections carry no visible
+   index any more, but the old edge-to-edge width read as too loud. */
 .section-grid {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
-  column-gap: clamp(1rem, 2vw, 2rem);
   row-gap: 2.5rem;
 }
 
-.section-index {
-  grid-column: 1 / span 2;
-}
-
-.section-index .sticky {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
 .section-body {
-  grid-column: 3 / span 9;
+  grid-column: 3 / 11;
 }
 
-/* 활동 and 커리큘럼 are one continuous move: the four cards merge into the
-   calendar and the index changes in place over the top of it. Both sections
-   therefore drop the left index column and run it as a row across the top, so
-   the swap happens between two identically-placed indexes, and so the midpoint
-   of the four leaves (where the tree's root sits) lands on the viewport
-   midline the merge parks its bar on. */
-#activity .section-index,
+/* The merge's geometry (card row -> bar -> calendar) is built off the
+   viewport midline, so these two sections keep the full-width track the
+   merge was measured against. */
 #activity .section-body,
-#curriculum .section-index,
-#curriculum .section-body {
-  grid-column: 1 / -1;
-}
-
-#activity .section-index .sticky,
-#curriculum .section-index .sticky {
-  flex-direction: row;
-  gap: 0.75rem;
+/* Body sits flush with the calendar below it, not the wider merge track --
+   the merge's cards only ever occupy #activity, so #curriculum never needed
+   the full-width row. */
+#curriculum .section-body,
+#curriculum .section-bleed {
+  grid-column: 2 / 12;
 }
 
 @media (max-width: 900px) {
-  .section-index,
+  .section-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .section-body,
   .section-bleed {
     grid-column: 1 / -1;
-  }
-
-  .section-index .sticky {
-    flex-direction: row;
-    gap: 0.75rem;
   }
 }
 
@@ -289,45 +266,38 @@ html.act1-live body {
   overflow: hidden;
 }
 
-/* Brutalist press: the two toolbar plates and every other block control
-   share one physical reaction -- lift on hover, slam flat on press. */
+/* No box-shadow anywhere on the page: clickable links still say so with a
+   press-nudge -- lift on hover, slam down on press. */
 .brand-corner,
-.nav-right,
 .contact-link {
-  box-shadow: var(--shadow);
   translate: 0 0;
-  transition: translate 0.09s ease, box-shadow 0.09s ease, color 0.25s ease;
+  transition: translate 0.09s ease, color 0.25s ease;
 }
 
 .brand-corner:hover,
-.nav-right:hover,
 .contact-link:hover {
   translate: -2px -2px;
-  box-shadow: var(--shadow-lift);
 }
 
 .brand-corner:active,
-.nav-right:active,
 .contact-link:active {
   translate: 3px 3px;
-  box-shadow: 0 0 0 var(--ink);
 }
 
 .brand-corner {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  background: var(--paper);
-  border: var(--rule) solid var(--ink);
-  padding: 0.65rem 1rem;
+  background: transparent;
+  padding: 0.75rem 1.15rem;
 }
 
 /* masked, so the shark picks up --logo instead of the file's baked-in blue --
    same token the footer lockup uses, for the same reason: light mode needs a
    darker blue than --brand to read on --paper, dark mode wants near-white. */
 .brand-corner .mark {
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   flex: none;
   background: var(--logo);
   -webkit-mask: url(/favicon.svg) center / contain no-repeat;
@@ -351,8 +321,7 @@ html.act1-live body {
   display: flex;
   align-items: baseline;
   gap: clamp(1.1rem, 2.6vw, 2.5rem);
-  background: var(--paper);
-  border: var(--rule) solid var(--ink);
+  background: transparent;
   padding: 0.75rem 1.1rem;
 }
 
@@ -366,6 +335,11 @@ html.act1-live body {
   color: var(--muted);
   transition: color 0.25s ease;
   white-space: nowrap;
+}
+
+.nav-links a + a {
+  border-left: calc(var(--rule) / 2) solid var(--ink);
+  padding-left: clamp(0.85rem, 1.6vw, 1.6rem);
 }
 
 .nav-links a .n {
@@ -602,11 +576,9 @@ html.act1-live body {
 }
 
 /* The merge's clones: 활동's four cards closing up into one bar and resizing
-   into 커리큘럼's calendar, and the section index that changes over the top of
-   them. Sized and positioned imperatively per scroll frame — see
-   Curriculum.tsx. */
-.handoff-card,
-.handoff-index {
+   into 커리큘럼's calendar. Sized and positioned imperatively per scroll frame
+   — see Curriculum.tsx. */
+.handoff-card {
   position: absolute;
   z-index: 31;
   overflow: hidden;
@@ -628,18 +600,20 @@ html.act1-live body {
 .stats {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1.25rem;
-  width: 75%
+  gap: 0;
 }
 
 .stat {
-  padding: clamp(1.4rem, 2.2vw, 2rem);
-  border: var(--rule) solid var(--ink);
-  box-shadow: var(--shadow);
+  padding: clamp(1.75rem, 2.6vw, 2.5rem);
+}
+
+.stat + .stat {
+  border-left: var(--rule-thin) solid var(--line);
+  padding-left: clamp(1.75rem, 2.6vw, 2.5rem);
 }
 
 .stat .fig {
-  font-size: clamp(2.25rem, 5.5vw, 4rem);
+  font-size: clamp(2.75rem, 6.5vw, 5rem);
   font-weight: 600;
   letter-spacing: -0.05em;
   line-height: 1;
@@ -661,6 +635,13 @@ html.act1-live body {
 @media (max-width: 700px) {
   .stats {
     grid-template-columns: 1fr;
+  }
+
+  .stat + .stat {
+    border-left: 0;
+    border-top: var(--rule-thin) solid var(--line);
+    padding-left: 0;
+    padding-top: clamp(1.75rem, 2.6vw, 2.5rem);
   }
 }
 
@@ -798,7 +779,6 @@ html.act1-live body {
 
 .activity-item {
   border: var(--rule) solid var(--line);
-  box-shadow: var(--shadow);
   padding: clamp(1.4rem, 2.2vw, 2rem);
   display: flex;
   flex-direction: column;
@@ -927,37 +907,39 @@ html.act1-live body {
 .dp-head,
 .dp-side,
 .dp-corner {
-  color: var(--paper);
-  background: var(--ink);
+  /* Pinned to the blue rather than --logo, which flips to near-white in dark
+     mode -- that turned the header band into a white slab with its own
+     borders invisible inside it. Light mode is unchanged: --logo is this
+     blue there. */
+  color: #f4f3ef;
+  background: var(--logo-blue);
 }
 
+/* Every text in a row sits on that row's centre line, so the row header and
+   its cells read as one horizontal band instead of three staggered ones. */
+.dp-head,
 .dp-side {
   display: flex;
   align-items: center;
 }
 
 .dp-cell {
-  min-height: 7.5rem;
+  min-height: 9rem;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  justify-content: space-between;
+  justify-content: center;
   /* relative so a hovered cell paints over its neighbours' borders */
   position: relative;
-  transition: background-color 0.12s ease, box-shadow 0.12s ease;
+  transition: background-color 0.12s ease, outline-color 0.12s ease;
 }
 
 .dp-cell .chip {
-  transition: opacity 0.3s ease, transform 0.3s ease, translate 0.12s ease;
-  font-size: 1rem;
+  transition: translate 0.12s ease;
+  font-size: 1.0625rem;
   font-weight: 500;
   letter-spacing: -0.02em;
   line-height: 1.35;
-}
-
-.dp-cell[data-filled='0'] .chip {
-  opacity: 0;
-  transform: translateY(0.35rem);
 }
 
 .dp-cell[data-base='1'] {
@@ -970,12 +952,10 @@ html.act1-live body {
   );
 }
 
-/* The lift stays inside the cell: .dp-scroll is a scroll container with
-   overflow-y hidden, so an outward offset shadow would be sheared off the
-   bottom row and a negative translate off the top. */
 .dp-cell:hover {
   z-index: 1;
-  box-shadow: inset 0 0 0 var(--rule) var(--ink);
+  outline: var(--rule) solid var(--ink);
+  outline-offset: calc(-1 * var(--rule));
   background: color-mix(in srgb, var(--point) 22%, var(--paper));
 }
 
@@ -1015,6 +995,34 @@ html.act1-live body {
     font-size: 10px;
     color: var(--muted);
   }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   faq
+   ───────────────────────────────────────────────────────────── */
+.faq-list {
+  margin-top: clamp(2.5rem, 5vw, 4rem);
+  display: flex;
+  flex-direction: column;
+}
+
+.faq-item {
+  padding-block: clamp(1.5rem, 2.6vw, 2rem);
+  border-top: var(--rule-thin) solid var(--line);
+}
+
+.faq-item:last-child {
+  border-bottom: var(--rule-thin) solid var(--line);
+}
+
+.faq-q {
+  color: var(--point-text);
+  margin-bottom: 0.6rem;
+}
+
+.faq-a {
+  margin: 0;
+  color: var(--muted);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -1091,7 +1099,6 @@ html.act1-live body {
   aspect-ratio: 16 / 9;
   border-radius: 1.5rem;
   border: var(--rule) solid var(--line);
-  box-shadow: var(--shadow);
   overflow: hidden;
 }
 
@@ -1125,9 +1132,11 @@ html.act1-live body {
    contact
    ───────────────────────────────────────────────────────────── */
 .contact-links {
+  --gap: clamp(4rem, 7vw, 9rem);
   display: flex;
   flex-direction: column;
-  gap: 1.75rem;
+  gap: var(--gap);
+  margin-top: var(--gap);
 }
 
 .contact-link {
@@ -1166,13 +1175,15 @@ html.act1-live body {
 .footer {
   padding-block: clamp(3rem, 6vw, 5rem) clamp(1.5rem, 3vw, 2.5rem);
   display: flex;
-  flex-direction: column;
-  gap: 2rem;
+  align-items: flex-end;
+  gap: clamp(1.5rem, 3vw, 3rem);
 }
 
 /* Logo and wordmark are sized in percentages of this row rather than vw, so
    the lockup fills the shell at every width off one set of numbers. */
 .footer-lockup {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   column-gap: 2%;
@@ -1181,8 +1192,11 @@ html.act1-live body {
 
 .footer-mark {
   flex: 1;
-  /* same ratio as the logo bump: ink-to-row fill stays ~1.0 at every width. */
-  font-size: 14.3cqw;
+  /* same ratio as the logo bump: ink-to-row fill stays ~1.0 at every width.
+     Bumped from 8.58cqw when the footer became a row -- the lockup no longer
+     spans the full shell, so both figures grow by the same factor to keep
+     the lockup's own proportions unchanged. */
+  font-size: 11cqw;
   font-weight: 800;
   letter-spacing: -0.04em;
   line-height: 0.9;
@@ -1196,7 +1210,7 @@ html.act1-live body {
    from --logo being dark enough on its own instead. */
 .footer .logo-full {
   flex: none;
-  width: 14.5%;
+  width: 11.15%;
   aspect-ratio: 542 / 525;
   background: var(--logo);
   -webkit-mask: url(/logo.svg) left center / contain no-repeat;
@@ -1208,11 +1222,12 @@ html.act1-live body {
    mask's ring/teeth/fin holes as a black disc (see above); outline sits
    outside the box and doesn't touch what's inside it. */
 :root:not([data-theme='dark']) .footer .logo-full {
-  outline: 4px solid #000;
+  outline: 3px solid #000;
   outline-offset: 2px;
 }
 
 .footer .meta {
+  flex: none;
   text-align: right;
   color: var(--muted);
   display: flex;
@@ -1222,6 +1237,24 @@ html.act1-live body {
 }
 
 @media (max-width: 700px) {
+  .footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 2rem;
+  }
+
+  .footer-lockup {
+    order: 1;
+  }
+
+  .footer-mark {
+    font-size: 8.58cqw;
+  }
+
+  .footer .logo-full {
+    width: 8.7%;
+  }
+
   .footer .meta {
     text-align: left;
     align-items: flex-start;

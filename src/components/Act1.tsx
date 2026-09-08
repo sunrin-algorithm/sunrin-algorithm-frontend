@@ -135,9 +135,16 @@ export default function Act1({ skipLock }: Props) {
     }
     /** The word boxes ride down with their cells into the root row. */
     const midDrop = rootBoxRect().y - midBoxRect(0).y
+    /** Half the gap between the two words: each box grows this much toward
+        the other so they meet in the middle and their outer edges together
+        are exactly the root box. */
+    const meet = (midBoxRect(1).x - (midBoxRect(0).x + midBoxRect(0).w)) / 2
 
     gsap.set(camera, { x: cam0.x, y: cam0.y, scale: cam0.scale, transformOrigin: '0 0' })
-    gsap.set([...leafBoxes, ...midBoxes, rootBox], { opacity: 0, scale: 0.6, transformOrigin: 'center' })
+    gsap.set([...leafBoxes, ...midBoxes], { opacity: 0, scale: 0.6, transformOrigin: 'center' })
+    // No pop for the root: it has to appear exactly on the outline the two
+    // word boxes have just formed, so it only ever fades.
+    gsap.set(rootBox, { opacity: 0 })
     gsap.set([...leafEdgeEls, ...midEdgeEls], { strokeDashoffset: 1 })
     glyphs.forEach((glyph, g) => {
       const c = leafGlyphCenter(g)
@@ -249,12 +256,23 @@ export default function Act1({ skipLock }: Props) {
       )
       // 3.75-4.10 -- mid edges fade behind the descending words.
       .to(midEdgeEls, { opacity: 0, duration: 0.35 }, 3.75)
-      // 4.15-4.55 -- the root box fades in around both halves: the merge closing.
-      .to(rootBox, { opacity: 1, scale: 1, duration: 0.4, ease: 'back.out(2)' }, 4.15)
-      // 4.45-4.85 -- everything dissolves, the merged title remains.
-      .to([...leafBoxes, ...midBoxes, rootBox], { opacity: 0, duration: 0.4 }, 4.45)
-      .to([...leafEdgeEls, ...midEdgeEls], { opacity: 0, duration: 0.3 }, 4.45)
-      .to(progress, { opacity: 0, duration: 0.3 }, 4.45)
+      // 4.30-4.75 -- the two word boxes close up into one: each grows toward
+      // the other until they touch in the middle of the gap, and the borders
+      // where they meet shrink away as they do, so what is left is a single
+      // outline the size of the root box (same seam trick as the card merge).
+      .to(midBoxes[0], { width: midBoxRect(0).w + meet, borderRightWidth: 0, duration: 0.45, ease: 'power2.inOut' }, 4.3)
+      .to(
+        midBoxes[1],
+        { x: -meet, width: midBoxRect(1).w + meet, borderLeftWidth: 0, duration: 0.45, ease: 'power2.inOut' },
+        4.3,
+      )
+      // 4.75-5.15 -- the root box fades in on the very same rectangle: the
+      // merged outline turning point-blue is the seal on it.
+      .to(rootBox, { opacity: 1, duration: 0.4, ease: 'power2.out' }, 4.75)
+      // 5.35-5.75 -- everything dissolves, the merged title remains.
+      .to([...leafBoxes, ...midBoxes, rootBox], { opacity: 0, duration: 0.4 }, 5.35)
+      .to([...leafEdgeEls, ...midEdgeEls], { opacity: 0, duration: 0.3 }, 5.35)
+      .to(progress, { opacity: 0, duration: 0.3 }, 5.35)
 
     return () => {
       clearTimeout(timeout)

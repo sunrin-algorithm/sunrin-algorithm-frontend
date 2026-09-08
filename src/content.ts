@@ -3,7 +3,8 @@ export const NAV = [
   { id: 'activity', n: '02', label: '활동' },
   { id: 'curriculum', n: '03', label: '커리큘럼' },
   { id: 'contest', n: '04', label: '천코대' },
-  { id: 'contact', n: '05', label: '연락' },
+  { id: 'faq', n: '05', label: 'FAQ' },
+  { id: 'contact', n: '06', label: '연락' },
 ] as const
 
 /** Recomputed, not hardcoded — so "N년째" never quietly goes stale. */
@@ -37,7 +38,7 @@ export const ACTIVITIES = [
   },
   {
     title: '교내 대회 주관',
-    body: '천하제일 코딩 대회의 문제 출제부터 채점까지 부원들이 직접 맡습니다.',
+    body: '천하제일 코딩 대회의 문제는 외부 출제진 분들과 선린고 졸업생 분들이 맡습니다.',
   },
   {
     title: '선배·외부 강사 멘토링',
@@ -52,21 +53,29 @@ export const ACTIVITIES = [
 export const ACTIVITY_BRANCHES = ['배우기', '나누기'] as const
 
 export const CURRICULUM = {
-  rows: ['1학기 초', '1학기 중반', '2학기'],
+  rows: ['1학기', '2학기'],
   cols: ['C++', '자료구조', '알고리즘', '기출·대회', '멘토링'],
   /** null = nothing scheduled in that topic that term. */
   cells: [
-    ['입출력·조건문·반복문', '배열과 문자열', null, null, null],
-    ['STL 컨테이너', '스택·큐·트리', '정렬·이분 탐색', '백준 단계별', null],
+    ['문법 기초·STL 컨테이너', '배열·문자열·스택·큐·트리', '정렬·이분 탐색', '백준 단계별', null],
     ['템플릿·시간복잡도', '그래프 표현', 'DP·그래프 탐색', 'NYPC·정보올림피아드', '선배·외부 강사'],
   ] as (string | null)[][],
 }
+
+/** Placeholder Q&A -- swap in the real five once they're decided. */
+export const FAQ = [
+  { q: 'SAMPLE 1', a: 'SAMPLE 2' },
+  { q: 'SAMPLE 1', a: 'SAMPLE 2' },
+  { q: 'SAMPLE 1', a: 'SAMPLE 2' },
+  { q: 'SAMPLE 1', a: 'SAMPLE 2' },
+  { q: 'SAMPLE 1', a: 'SAMPLE 2' },
+]
 
 export const CONTEST = {
   titleHead: '천하제일',
   titleTail: '코딩 대회',
   paragraphs: [
-    '알고리즘연구부가 매년 주관하는 교내 알고리즘 문제 해결 대회입니다. 최대 3명이 한 팀을 이루고, 출제부터 채점까지 부원들이 직접 맡습니다.',
+    '알고리즘연구부가 매년 주관하는 교내 알고리즘 문제 해결 대회입니다. 최대 3명이 한 팀을 이루고, 출제는 외부 출제진 분들과 선린고 졸업생 분들이 맡습니다.',
     '알고리즘 경험이 없더라도 한번쯤 참가해보는 것을 추천합니다.',
   ],
   facts: [

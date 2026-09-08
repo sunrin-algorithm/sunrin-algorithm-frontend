@@ -57,7 +57,7 @@ export function rowWidth(level: Level): number {
 const levelY = (level: Level) => level * LEVEL_GAP
 
 /** How much of the viewport width a level's row fills once the camera frames it. */
-const FRAC: Record<Level, number> = { 0: 0.8, 1: 0.88, 2: 0.96 }
+const FRAC: Record<Level, number> = { 0: 0.8, 1: 0.88, 2: 0.9 }
 
 /**
  * The camera always centers a level's row: x stays put (every row is already

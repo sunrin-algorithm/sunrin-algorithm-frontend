@@ -6,6 +6,7 @@ import Contact from './components/Contact'
 import Contest from './components/Contest'
 import Corners from './components/Corners'
 import Curriculum from './components/Curriculum'
+import Faq from './components/Faq'
 import { ScrollTrigger, initSmoothScroll, scrollToId } from './lib/motion'
 
 export default function App() {
@@ -32,6 +33,7 @@ export default function App() {
         <Activities />
         <Curriculum />
         <Contest />
+        <Faq />
         <Contact />
       </main>
       <div id="stage" />

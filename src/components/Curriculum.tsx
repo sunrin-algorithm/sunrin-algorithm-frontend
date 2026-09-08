@@ -1,10 +1,9 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { CURRICULUM } from '../content'
 import { treeHoldEnd, treeHoldStart } from './Activities'
 import type { Rect } from '../lib/handoff'
 import { centerRect, cloneInto, lerpRect, pinShift, placeAt, rectOf } from '../lib/handoff'
 import { ScrollTrigger, fitStart, reduceMotion, registerDoneAt } from '../lib/motion'
-import { peakProgress } from '../lib/peak'
 import DpGrid from './DpGrid'
 import Section from './Section'
 
@@ -20,10 +19,10 @@ const TREE = 0.18
 const MERGE = 0.42
 
 /** The landing, in viewport heights of the calendar's own pin: the crossfade
-    onto the real grid, then the grid filling itself in. */
+    onto the real grid, then a beat of the finished calendar standing still. */
 const FADE = 0.14
-const FILL = 0.36
-const LOCK_VH = FADE + FILL
+const HOLD = 0.36
+const LOCK_VH = FADE + HOLD
 
 const clamp01 = (v: number) => Math.min(Math.max(v, 0), 1)
 
@@ -42,14 +41,12 @@ const slot = (box: Rect, i: number): Rect => ({
 
 export default function Curriculum() {
   const table = useRef<HTMLDivElement>(null)
-  const [fillProgress, setFillProgress] = useState(0)
 
   // The merge: 활동's four cards become this section's calendar without either
   // section moving. The finished tree dissolves off them, they slide sideways
   // into a single long rectangle at the centre of the screen, that rectangle
-  // resizes into the calendar's shape, the section's index changes from
-  // [02] 활동 to [03] 커리큘럼 where it stands, and only then does the real
-  // section fade up underneath and fill itself in.
+  // resizes into the calendar's shape, and only then does the real section
+  // fade up underneath.
   useEffect(() => {
     const el = table.current
     if (!el || reduceMotion()) return
@@ -57,12 +54,10 @@ export default function Curriculum() {
     const stage = document.getElementById('stage')
     const section = document.getElementById('activity')
     const cards = [...document.querySelectorAll<HTMLElement>('#activity .activity-item')]
-    const actIndex = document.querySelector<HTMLElement>('#activity .section-index')
-    // Grid, not just the table, so the section's index rides along with it and
-    // so the pin fits the whole grid on screen rather than just the table.
+    // Grid, not just the table, so the pin fits the whole section on screen
+    // rather than just the table.
     const sectionGrid = el.closest<HTMLElement>('.section-grid') ?? el
-    const curIndex = sectionGrid.querySelector<HTMLElement>('.section-index')
-    if (!stage || !section || !actIndex || !curIndex || cards.length !== 4) return
+    if (!stage || !section || cards.length !== 4) return
 
     // The scroll box, not the grid inside it: on a container too narrow for the
     // table it is the box that is actually on screen, scrollbar and all, so it
@@ -70,9 +65,9 @@ export default function Curriculum() {
     // it does.
     const box = () => el.querySelector<HTMLElement>('.dp-scroll')
     /** Everything of 커리큘럼 that must not be on screen before the bar becomes
-        it — the whole section, in other words, index included. */
+        it — the whole section, in other words. */
     const veil = () => [
-      ...sectionGrid.querySelectorAll<HTMLElement>('.section-index, .section-body'),
+      ...sectionGrid.querySelectorAll<HTMLElement>('.section-body'),
       ...el.querySelectorAll<HTMLElement>('.dp-scroll'),
     ]
     const setVeil = (o: string) => veil().forEach((n) => (n.style.opacity = o))
@@ -110,7 +105,6 @@ export default function Curriculum() {
     const edgeColor = getComputedStyle(cards[0]).borderTopColor
     const edgeWidth = parseFloat(getComputedStyle(cards[0]).borderTopWidth) || 0
     let clones: HTMLElement[] = []
-    let idxClone: HTMLElement | null = null
 
     const dropCards = () => {
       clones.forEach((c) => c.remove())
@@ -123,15 +117,11 @@ export default function Curriculum() {
 
     const release = () => {
       dropCards()
-      idxClone?.remove()
-      idxClone = null
-      actIndex.style.visibility = ''
       treeBits().forEach((n) => (n.style.opacity = ''))
     }
 
-    // Held just long enough for the crossfade and for the grid to fill itself
-    // in while it stands still.
-    const peak = peakProgress()
+    // Held just long enough for the crossfade and for the finished calendar
+    // to stand still for a beat afterwards.
     const lock = ScrollTrigger.create({
       trigger: sectionGrid,
       start: fitStart(sectionGrid),
@@ -139,21 +129,10 @@ export default function Curriculum() {
       pin: sectionGrid,
       anticipatePin: 1,
       refreshPriority: 3,
-      // The grid's own fill rides this pin's progress instead of a magic
-      // scroll-percentage trigger of its own: it starts the frame the
-      // crossfade finishes (at FADE/LOCK_VH) and runs for FILL/LOCK_VH more.
-      // Latched, so scrolling back up over a full calendar does not unfill it
-      // one anti-diagonal at a time.
-      onUpdate: (self) =>
-        setFillProgress(peak.push(clamp01((self.progress * LOCK_VH - FADE) / FILL))),
-      onLeaveBack: () => {
-        peak.reset()
-        setFillProgress(0)
-      },
     })
     const unregisterDone = registerDoneAt(
       'curriculum',
-      () => lock.start + window.innerHeight * (FADE + FILL),
+      () => lock.start + window.innerHeight * LOCK_VH,
     )
 
     const drive = ScrollTrigger.create({
@@ -188,17 +167,6 @@ export default function Curriculum() {
         const run = land - begin
         const gone = land + (vh * FADE) / span
         if (run <= 0 || p < begin || p >= gone) return release()
-
-        // The index has to change where it stands, so it decouples for the
-        // whole merge and the swap happens later, on a clone parked where the
-        // real one sits while the grid is pinned.
-        if (!idxClone) {
-          idxClone = cloneInto(stage, actIndex).clone
-          idxClone.classList.add('handoff-index')
-          idxClone.setAttribute('aria-hidden', 'true')
-        }
-        const idxRect = pinnedRect(actIndex)
-        actIndex.style.visibility = 'hidden'
 
         const treeGone = begin + run * TREE
         treeBits().forEach(
@@ -269,19 +237,6 @@ export default function Curriculum() {
           })
           setVeil(String(gridFade))
         }
-
-        // [02] 활동 wipes out and [03] 커리큘럼 wipes back in over the resize,
-        // on the same spot, and only then does the clone hand over to the real
-        // index by travelling the (small) distance between the two grids.
-        const t = clamp01((p - grow) / (land - grow))
-        const swapped = String(t >= 0.5)
-        if (idxClone.dataset.swapped !== swapped) {
-          idxClone.innerHTML = t >= 0.5 ? curIndex.innerHTML : actIndex.innerHTML
-          idxClone.dataset.swapped = swapped
-        }
-        const show = t >= 0.5 ? clamp01((t - 0.5) / 0.35) : clamp01(1 - t / 0.35)
-        placeAt(idxClone, gridFade ? lerpRect(idxRect, rectOf(curIndex), gridFade) : idxRect)
-        idxClone.style.opacity = String(show * (1 - gridFade))
       },
     })
 
@@ -299,12 +254,7 @@ export default function Curriculum() {
       label="커리큘럼"
       bleed={
         <div className="curriculum-table" ref={table}>
-          <DpGrid
-            rows={CURRICULUM.rows}
-            cols={CURRICULUM.cols}
-            cells={CURRICULUM.cells}
-            progress={fillProgress}
-          />
+          <DpGrid rows={CURRICULUM.rows} cols={CURRICULUM.cols} cells={CURRICULUM.cells} />
         </div>
       }
     >
