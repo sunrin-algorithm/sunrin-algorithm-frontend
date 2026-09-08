@@ -54,13 +54,12 @@ export const ACTIVITY_BRANCHES = ['배우기', '나누기'] as const
 export const CURRICULUM = {
   rows: ['1학기 초', '1학기 중반', '2학기'],
   cols: ['C++', '자료구조', '알고리즘', '기출·대회', '멘토링'],
-  /** null = base case: nothing to accumulate from yet. */
+  /** null = nothing scheduled in that topic that term. */
   cells: [
     ['입출력·조건문·반복문', '배열과 문자열', null, null, null],
     ['STL 컨테이너', '스택·큐·트리', '정렬·이분 탐색', '백준 단계별', null],
     ['템플릿·시간복잡도', '그래프 표현', 'DP·그래프 탐색', 'NYPC·정보올림피아드', '선배·외부 강사'],
   ] as (string | null)[][],
-  note: '각 칸은 왼쪽 칸과 위쪽 칸이 채워진 뒤에야 계산됩니다. 커리큘럼이 쌓이는 순서도 같습니다.',
 }
 
 export const CONTEST = {
@@ -75,7 +74,7 @@ export const CONTEST = {
     ['대상', '선린인터넷고등학교 재학생 누구나'],
     ['주기', '매년 1회 · 알고리즘연구부 주관'],
   ],
-  graphNote: 'K₃ — 세 명으로 이루어진 팀',
+  photoCaption: '천하제일 코딩대회',
 }
 
 export const CONTACT = {

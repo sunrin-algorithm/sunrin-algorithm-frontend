@@ -6,12 +6,19 @@
   --point: #2aa1fe;
   /* --point is 2.48:1 on --paper — fine for strokes/fills, not for text.
      --point-text is a darkened stand-in kept only for color: declarations. */
-  --point-text: #0d6fbe;
+  --point-text: #0a5d9f;
 
   --paper: #f4f3ef;
   --ink: #14161a;
-  --muted: #676c74;
-  --line: rgba(20, 22, 26, 0.16);
+  --muted: #4a4f57;
+  /* Light mode paints the logo blue, dark mode near-white. Deeper than
+     --brand: the lockup is mostly hairlines, and #4d7ce3 sits at 3.6:1 on
+     paper, which is where "로고가 안 보인다" came from. This is 6.1:1. */
+  --logo: #2a55b8;
+  /* --line is opaque now (block borders); --edge is the old translucent
+     value, kept for SVG strokes that need to fade into the background. */
+  --line: var(--ink);
+  --edge: rgba(20, 22, 26, 0.16);
   --line-soft: rgba(20, 22, 26, 0.08);
   --node-idle: rgba(20, 22, 26, 0.22);
 
@@ -21,16 +28,20 @@
   --pixel-mono: GalmuriMono9, Galmuri9, monospace;
   --pixel-title: 'DungGeunMo', GalmuriMono9, monospace;
 
-  --gutter: clamp(1.25rem, 4vw, 4rem);
-  --rule: 1px;
+  --gutter: clamp(0.5rem, 1vw, 0.85rem);
+  --rule: 4px;
+  --rule-thin: 2px;
+  --shadow: 10px 10px 0 var(--ink);
+  --shadow-lift: 16px 16px 0 var(--ink);
 }
 
 :root[data-theme='dark'] {
   --paper: #0b0f1a;
   --ink: #e8ebf0;
-  --muted: #8892a4;
+  --muted: #9aa3b5;
   --point-text: #2aa1fe;
-  --line: rgba(232, 235, 240, 0.18);
+  --logo: var(--ink);
+  --edge: rgba(232, 235, 240, 0.18);
   --line-soft: rgba(232, 235, 240, 0.09);
   --node-idle: rgba(232, 235, 240, 0.26);
   --brand: #6e97ec;
@@ -96,14 +107,13 @@ body {
   font-family: var(--sans);
   background: var(--paper);
   color: var(--ink);
-  font-size: 16px;
-  line-height: 1.62;
+  font-size: 18px;
+  line-height: 1.68;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
   /* Korean wraps between 어절, never mid-word. */
   word-break: keep-all;
   overflow-wrap: break-word;
-  transition: background-color 0.4s ease, color 0.4s ease;
 }
 
 ::selection {
@@ -112,7 +122,7 @@ body {
 }
 
 :focus-visible {
-  outline: 2px solid var(--point);
+  outline: var(--rule) solid var(--ink);
   outline-offset: 3px;
 }
 
@@ -121,7 +131,7 @@ body {
    ───────────────────────────────────────────────────────────── */
 .pixel {
   font-family: var(--pixel);
-  font-size: 0.6875rem;
+  font-size: 0.875rem;
   letter-spacing: 0.06em;
   line-height: 1.5;
   text-transform: uppercase;
@@ -129,7 +139,7 @@ body {
 
 .pixel-mono {
   font-family: var(--pixel-mono);
-  font-size: 0.6875rem;
+  font-size: 0.875rem;
   letter-spacing: 0.04em;
   font-variant-numeric: tabular-nums;
 }
@@ -208,10 +218,6 @@ body {
   gap: 0.35rem;
 }
 
-.section-index .num {
-  color: var(--point-text);
-}
-
 .section-body {
   grid-column: 3 / span 9;
 }
@@ -233,35 +239,6 @@ body {
 #curriculum .section-index .sticky {
   flex-direction: row;
   gap: 0.75rem;
-}
-
-/* 소개's figures ride in a right-hand column beside the prose instead of a full
-   width band under it, so the tree starts the moment the copy ends. */
-@media (min-width: 901px) {
-  #about .section-body {
-    grid-column: 3 / span 6;
-  }
-
-  #about .section-bleed {
-    grid-column: 10 / -1;
-    grid-row: 1;
-    margin-top: 0;
-    align-self: start;
-  }
-
-  #about .stats {
-    grid-template-columns: 1fr;
-  }
-
-  #about .stat {
-    border-left: 0;
-    padding-left: 0;
-    border-top: var(--rule) solid var(--line-soft);
-  }
-
-  #about .stat:first-child {
-    border-top: 0;
-  }
 }
 
 @media (max-width: 900px) {
@@ -312,31 +289,71 @@ html.act1-live body {
   overflow: hidden;
 }
 
+/* Brutalist press: the two toolbar plates and every other block control
+   share one physical reaction -- lift on hover, slam flat on press. */
+.brand-corner,
+.nav-right,
+.contact-link {
+  box-shadow: var(--shadow);
+  translate: 0 0;
+  transition: translate 0.09s ease, box-shadow 0.09s ease, color 0.25s ease;
+}
+
+.brand-corner:hover,
+.nav-right:hover,
+.contact-link:hover {
+  translate: -2px -2px;
+  box-shadow: var(--shadow-lift);
+}
+
+.brand-corner:active,
+.nav-right:active,
+.contact-link:active {
+  translate: 3px 3px;
+  box-shadow: 0 0 0 var(--ink);
+}
+
 .brand-corner {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.75rem;
+  background: var(--paper);
+  border: var(--rule) solid var(--ink);
+  padding: 0.65rem 1rem;
 }
 
-/* masked, so the shark picks up --brand instead of the file's baked-in blue */
+/* masked, so the shark picks up --logo instead of the file's baked-in blue --
+   same token the footer lockup uses, for the same reason: light mode needs a
+   darker blue than --brand to read on --paper, dark mode wants near-white. */
 .brand-corner .mark {
-  width: 27px;
-  height: 27px;
+  width: 34px;
+  height: 34px;
   flex: none;
-  background: var(--brand);
+  background: var(--logo);
   -webkit-mask: url(/favicon.svg) center / contain no-repeat;
   mask: url(/favicon.svg) center / contain no-repeat;
 }
 
+/* Light mode only: the masked silhouette can wash into --paper at this
+   size, so the icon gets a hairline frame. Dark mode's near-white fill
+   already reads fine on the dark paper -- no frame there. */
+:root:not([data-theme='dark']) .brand-corner .mark {
+  outline: 1px solid var(--ink);
+  outline-offset: 1px;
+}
+
 .brand-corner .wordmark {
-  width: 74px;
-  color: var(--ink);
+  width: 92px;
+  color: var(--logo);
 }
 
 .nav-right {
   display: flex;
   align-items: baseline;
-  gap: clamp(1rem, 2.4vw, 2.25rem);
+  gap: clamp(1.1rem, 2.6vw, 2.5rem);
+  background: var(--paper);
+  border: var(--rule) solid var(--ink);
+  padding: 0.75rem 1.1rem;
 }
 
 .nav-links {
@@ -372,7 +389,7 @@ html.act1-live body {
   padding-inline: 0.5rem;
   margin-inline: -0.5rem;
   font-family: var(--pixel);
-  font-size: 0.6875rem;
+  font-size: 0.875rem;
   letter-spacing: 0.06em;
   color: var(--muted);
   white-space: nowrap;
@@ -386,6 +403,11 @@ html.act1-live body {
   color: var(--ink);
 }
 
+.theme-toggle:active,
+.index-trigger:active {
+  opacity: 0.6;
+}
+
 /* mobile index overlay */
 .index-trigger {
   display: none;
@@ -394,7 +416,7 @@ html.act1-live body {
   padding-inline: 0.5rem;
   margin-inline: -0.5rem;
   font-family: var(--pixel);
-  font-size: 0.6875rem;
+  font-size: 0.875rem;
   letter-spacing: 0.06em;
 }
 
@@ -411,7 +433,7 @@ html.act1-live body {
 }
 
 .index-sheet a {
-  font-size: clamp(2rem, 11vw, 3.25rem);
+  font-size: clamp(2.25rem, 12.5vw, 3.75rem);
   font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1.05;
@@ -419,7 +441,7 @@ html.act1-live body {
 
 .index-sheet a .n {
   font-family: var(--pixel);
-  font-size: 0.75rem;
+  font-size: 0.875rem;
   color: var(--point-text);
   vertical-align: super;
   margin-right: 0.5rem;
@@ -431,7 +453,7 @@ html.act1-live body {
   position: absolute;
   top: clamp(1rem, 2.4vw, 1.75rem);
   font-family: var(--pixel);
-  font-size: 0.6875rem;
+  font-size: 0.875rem;
   letter-spacing: 0.06em;
 }
 
@@ -482,12 +504,12 @@ html.act1-live body {
 
 .act1-static-mark {
   color: var(--ink);
-  width: clamp(7rem, 16vw, 11rem);
+  width: clamp(8.5rem, 19vw, 13.5rem);
 }
 
 .act1-static-ko {
   font-family: var(--pixel-title);
-  font-size: clamp(1.1rem, 2.4vw, 1.75rem);
+  font-size: clamp(1.3rem, 2.8vw, 2.1rem);
   font-weight: 600;
   letter-spacing: -0.02em;
   color: var(--ink);
@@ -549,7 +571,7 @@ html.act1-live body {
    activity tree edges — shared by Activities' own DFS tree
    ───────────────────────────────────────────────────────────── */
 .tree-edge {
-  stroke: var(--line);
+  stroke: var(--edge);
   stroke-width: 1;
   fill: none;
 }
@@ -563,7 +585,7 @@ html.act1-live body {
    about
    ───────────────────────────────────────────────────────────── */
 .about-lead {
-  font-size: clamp(1.35rem, 2.6vw, 2.35rem);
+  font-size: clamp(1.6rem, 3.2vw, 2.9rem);
   font-weight: 500;
   letter-spacing: -0.03em;
   line-height: 1.34;
@@ -574,8 +596,9 @@ html.act1-live body {
   color: var(--point-text);
   font-weight: 700;
   padding: 0 0.15em;
-  border-radius: 2px;
-  transition: color 0.2s ease;
+  border-radius: 0;
+  background: color-mix(in srgb, var(--point) 16%, var(--paper));
+  transition: color 0.2s ease, background-color 0.2s ease;
 }
 
 /* The merge's clones: 활동's four cards closing up into one bar and resizing
@@ -587,6 +610,7 @@ html.act1-live body {
   position: absolute;
   z-index: 31;
   overflow: hidden;
+  box-shadow: none;
 }
 
 .about-body {
@@ -602,23 +626,19 @@ html.act1-live body {
 }
 
 .stats {
-  border-top: var(--rule) solid var(--line);
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.25rem;
 }
 
 .stat {
-  padding: 1.5rem 1.25rem 0 1.25rem;
-  border-left: var(--rule) solid var(--line);
-}
-
-.stat:first-child {
-  border-left: 0;
-  padding-left: 0;
+  padding: clamp(1.4rem, 2.2vw, 2rem);
+  border: var(--rule) solid var(--ink);
+  box-shadow: var(--shadow);
 }
 
 .stat .fig {
-  font-size: clamp(2.25rem, 6vw, 4.5rem);
+  font-size: clamp(2.25rem, 5.5vw, 4rem);
   font-weight: 600;
   letter-spacing: -0.05em;
   line-height: 1;
@@ -640,16 +660,6 @@ html.act1-live body {
 @media (max-width: 700px) {
   .stats {
     grid-template-columns: 1fr;
-  }
-
-  .stat {
-    border-left: 0;
-    padding-left: 0;
-    border-top: var(--rule) solid var(--line-soft);
-  }
-
-  .stat:first-child {
-    border-top: 0;
   }
 }
 
@@ -720,7 +730,7 @@ html.act1-live body {
 
 /* While a path is lit, the rest of the tree steps back so the route reads. */
 .activity-edges:has(.is-path) .tree-edge:not(.is-path) {
-  stroke: var(--line);
+  stroke: var(--edge);
   stroke-width: 1;
 }
 
@@ -731,7 +741,7 @@ html.act1-live body {
   height: 11px;
   margin: -6px 0 0 -6px;
   border-radius: 50%;
-  border: var(--rule) solid var(--node-idle);
+  border: var(--rule-thin) solid var(--node-idle);
   background: var(--paper);
   transition: border-color 0.25s ease, background-color 0.25s ease;
 }
@@ -782,16 +792,17 @@ html.act1-live body {
   z-index: 1;
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: clamp(3.5rem, 6vw, 5rem) clamp(1.25rem, 2.2vw, 2rem);
+  gap: clamp(3.75rem, 6.5vw, 5.5rem) clamp(1.5rem, 2.6vw, 2.5rem);
 }
 
 .activity-item {
   border: var(--rule) solid var(--line);
-  padding: clamp(1.1rem, 1.8vw, 1.6rem);
+  box-shadow: var(--shadow);
+  padding: clamp(1.4rem, 2.2vw, 2rem);
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
-  min-height: clamp(14rem, 21vw, 18rem);
+  gap: 1rem;
+  min-height: clamp(15.5rem, 23vw, 20rem);
   /* opaque so the edges stop cleanly at the card boundary */
   background: var(--paper);
   opacity: 0;
@@ -806,9 +817,7 @@ html.act1-live body {
 }
 
 .activity-item.is-path {
-  /* line-soft alone is translucent -- layer it over paper so the edge
-     underneath stays hidden instead of showing through on hover. */
-  background: linear-gradient(var(--line-soft), var(--line-soft)), var(--paper);
+  background: color-mix(in srgb, var(--point) 12%, var(--paper));
 }
 
 .activity-item .head {
@@ -824,7 +833,7 @@ html.act1-live body {
 }
 
 .activity-item h3 {
-  font-size: clamp(1.1rem, 1.7vw, 1.5rem);
+  font-size: clamp(1.3rem, 2vw, 1.85rem);
   font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1.25;
@@ -833,7 +842,7 @@ html.act1-live body {
 
 .activity-item p {
   color: var(--muted);
-  font-size: 0.9375rem;
+  font-size: 1rem;
   line-height: 1.6;
 }
 
@@ -898,9 +907,9 @@ html.act1-live body {
 }
 
 .dp {
-  min-width: 48rem;
+  min-width: 52rem;
   display: grid;
-  grid-template-columns: 9rem repeat(var(--cols), minmax(8rem, 1fr));
+  grid-template-columns: 10rem repeat(var(--cols), minmax(8.75rem, 1fr));
   border-top: var(--rule) solid var(--line);
   border-left: var(--rule) solid var(--line);
 }
@@ -911,14 +920,14 @@ html.act1-live body {
 .dp-corner {
   border-right: var(--rule) solid var(--line);
   border-bottom: var(--rule) solid var(--line);
-  padding: 0.7rem 0.75rem;
+  padding: 0.9rem 1rem;
 }
 
 .dp-head,
 .dp-side,
 .dp-corner {
-  color: var(--muted);
-  background: var(--line-soft);
+  color: var(--paper);
+  background: var(--ink);
 }
 
 .dp-side {
@@ -927,33 +936,25 @@ html.act1-live body {
 }
 
 .dp-cell {
-  min-height: 6.5rem;
+  min-height: 7.5rem;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
   justify-content: space-between;
-  transition: background-color 0.25s ease, box-shadow 0.25s ease;
-}
-
-.dp-cell .chip,
-.dp-cell .val {
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  /* relative so a hovered cell paints over its neighbours' borders */
+  position: relative;
+  transition: background-color 0.12s ease, box-shadow 0.12s ease;
 }
 
 .dp-cell .chip {
-  font-size: 0.9375rem;
+  transition: opacity 0.3s ease, transform 0.3s ease, translate 0.12s ease;
+  font-size: 1rem;
   font-weight: 500;
   letter-spacing: -0.02em;
   line-height: 1.35;
 }
 
-.dp-cell .val {
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.dp-cell[data-filled='0'] .chip,
-.dp-cell[data-filled='0'] .val {
+.dp-cell[data-filled='0'] .chip {
   opacity: 0;
   transform: translateY(0.35rem);
 }
@@ -963,49 +964,22 @@ html.act1-live body {
     -45deg,
     transparent,
     transparent 7px,
-    var(--line-soft) 7px,
-    var(--line-soft) 8px
+    var(--edge) 7px,
+    var(--edge) 8px
   );
 }
 
-.dp-cell.is-lit {
-  background: color-mix(in srgb, var(--point) 14%, transparent);
+/* The lift stays inside the cell: .dp-scroll is a scroll container with
+   overflow-y hidden, so an outward offset shadow would be sheared off the
+   bottom row and a negative translate off the top. */
+.dp-cell:hover {
+  z-index: 1;
+  box-shadow: inset 0 0 0 var(--rule) var(--ink);
+  background: color-mix(in srgb, var(--point) 22%, var(--paper));
 }
 
-.dp-cell.is-dep {
-  box-shadow: inset 0 0 0 1px var(--point);
-}
-
-.dp-legend {
-  margin-top: 1.1rem;
-  display: flex;
-  gap: 1.5rem;
-  flex-wrap: wrap;
-  color: var(--muted);
-}
-
-/* Touch devices have no cursor to hover with. */
-@media (hover: none) {
-  .hover-hint {
-    display: none;
-  }
-}
-
-.dp-legend b {
-  font-weight: inherit;
-  color: var(--point-text);
-}
-
-.dp-legend > span:first-child {
-  flex: 1;
-  min-width: 20rem;
-}
-
-.curriculum-note {
-  margin-top: 1.75rem;
-  max-width: 46ch;
-  color: var(--muted);
-  font-size: 0.9375rem;
+.dp-cell:hover .chip {
+  translate: 0.25rem 0;
 }
 
 /* Narrow screens: the table keeps scrolling sideways, but the cells shrink so
@@ -1028,7 +1002,7 @@ html.act1-live body {
   }
 
   .dp-cell .chip {
-    font-size: 0.875rem;
+    font-size: 0.9375rem;
   }
 
   .curriculum-table::after {
@@ -1045,27 +1019,9 @@ html.act1-live body {
 /* ─────────────────────────────────────────────────────────────
    contest
    ───────────────────────────────────────────────────────────── */
-.contest-head {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 18rem);
-  gap: clamp(1.5rem, 3vw, 3rem);
-  align-items: end;
-}
-
-@media (max-width: 900px) {
-  .contest-head {
-    grid-template-columns: 1fr;
-  }
-
-  .contest-head .team-figure {
-    max-width: 18rem;
-    margin-inline: auto;
-  }
-}
-
 .contest-title {
-  font-size: clamp(2.5rem, 9.5vw, 8.5rem);
-  font-weight: 700;
+  font-size: clamp(2.75rem, 10.5vw, 10rem);
+  font-weight: 800;
   letter-spacing: -0.055em;
   line-height: 0.94;
 }
@@ -1111,7 +1067,7 @@ html.act1-live body {
   display: flex;
   gap: 1rem;
   color: var(--muted);
-  border-top: var(--rule) solid var(--line-soft);
+  border-top: var(--rule-thin) solid var(--line-soft);
   padding-top: 0.55rem;
 }
 
@@ -1120,42 +1076,47 @@ html.act1-live body {
   color: var(--point-text);
 }
 
-.team-figure {
+.contest-side {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.5rem, 3vw, 2.25rem);
+}
+
+/* The one rounded thing on an otherwise square-cornered site -- a photo
+   reads as a photo, not a panel, so it gets to break the grid's rule. */
+.contest-photo {
+  position: relative;
   margin: 0;
+  aspect-ratio: 16 / 9;
+  border-radius: 1.5rem;
+  border: var(--rule) solid var(--line);
+  box-shadow: var(--shadow);
+  overflow: hidden;
 }
 
-.team-figure figcaption {
-  margin-top: 1.4rem;
-  text-align: center;
-  color: var(--muted);
-  font-size: 11px;
-}
-
-.team-viz {
+.contest-photo img {
+  display: block;
   width: 100%;
-  max-width: 22rem;
-  height: auto;
-  overflow: visible;
-  margin-inline: auto;
+  height: 100%;
+  object-fit: cover;
 }
 
-.team-edge {
-  stroke: var(--point);
-  stroke-width: 1;
+.contest-photo figcaption {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  background: var(--brand);
+  color: var(--paper);
+  padding: 0.5rem 1rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.02em;
+  border-top-right-radius: 1rem;
 }
 
-.team-node circle {
-  fill: var(--paper);
-  stroke: var(--brand);
-  stroke-width: 1;
-}
-
-.team-node text {
-  font-family: var(--pixel-mono);
-  font-size: 11px;
-  fill: var(--ink);
-  text-anchor: middle;
-  dominant-baseline: central;
+@media (max-width: 700px) {
+  .contest-photo {
+    border-radius: 1.1rem;
+  }
 }
 
 
@@ -1165,6 +1126,7 @@ html.act1-live body {
 .contact-links {
   display: flex;
   flex-direction: column;
+  gap: 1.75rem;
 }
 
 .contact-link {
@@ -1172,17 +1134,13 @@ html.act1-live body {
   align-items: baseline;
   justify-content: space-between;
   gap: 1.5rem;
-  padding-block: clamp(1.1rem, 2.4vw, 1.9rem);
-  border-bottom: var(--rule) solid var(--line);
-  transition: color 0.25s ease;
-}
-
-.contact-link:first-child {
-  border-top: var(--rule) solid var(--line);
+  padding: clamp(1.35rem, 2.8vw, 2.3rem) clamp(1.5rem, 2.8vw, 2.1rem);
+  border: var(--rule) solid var(--line);
+  background: var(--paper);
 }
 
 .contact-link .addr {
-  font-size: clamp(1.5rem, 5vw, 3.75rem);
+  font-size: clamp(1.75rem, 5.8vw, 4.5rem);
   font-weight: 600;
   letter-spacing: -0.045em;
   line-height: 1.05;
@@ -1206,25 +1164,40 @@ html.act1-live body {
 
 .footer {
   padding-block: clamp(3rem, 6vw, 5rem) clamp(1.5rem, 3vw, 2.5rem);
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
+  flex-direction: column;
   gap: 2rem;
-  align-items: flex-end;
+}
+
+/* Logo and wordmark are sized in percentages of this row rather than vw, so
+   the lockup fills the shell at every width off one set of numbers. */
+.footer-lockup {
+  display: flex;
+  align-items: center;
+  column-gap: 2%;
+  container-type: inline-size;
 }
 
 .footer-mark {
-  grid-column: 1 / -1;
-  font-size: clamp(3rem, 13vw, 11rem);
-  font-weight: 700;
+  flex: 1;
+  /* same ratio as the logo bump: ink-to-row fill stays ~1.0 at every width. */
+  font-size: 14.3cqw;
+  font-weight: 800;
   letter-spacing: -0.04em;
   line-height: 0.9;
+  white-space: nowrap;
   color: var(--ink);
 }
 
+/* No offset shadow here, unlike every other block on the page: the lockup is
+   a ring, teeth and fin lines around open ground, so an offset copy shows
+   through every one of those holes and reads as a black disc. Contrast comes
+   from --logo being dark enough on its own instead. */
 .footer .logo-full {
-  width: clamp(9rem, 20vw, 15rem);
+  flex: none;
+  width: 14.5%;
   aspect-ratio: 542 / 525;
-  background: var(--brand);
+  background: var(--logo);
   -webkit-mask: url(/logo.svg) left center / contain no-repeat;
   mask: url(/logo.svg) left center / contain no-repeat;
 }
@@ -1239,10 +1212,6 @@ html.act1-live body {
 }
 
 @media (max-width: 700px) {
-  .footer {
-    grid-template-columns: 1fr;
-  }
-
   .footer .meta {
     text-align: left;
     align-items: flex-start;

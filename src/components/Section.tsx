@@ -4,7 +4,6 @@ import { revealLines } from '../lib/motion'
 
 type Props = {
   id: string
-  n: string
   label: string
   children: ReactNode
   /** Full-bleed content that ignores the shell's max-width and gutter. */
@@ -12,7 +11,7 @@ type Props = {
 }
 
 /** Index column on the left, body on the right — the spine of every section. */
-export default function Section({ id, n, label, children, bleed }: Props) {
+export default function Section({ id, label, children, bleed }: Props) {
   const root = useRef<HTMLElement>(null)
 
   useEffect(() => {
@@ -21,13 +20,10 @@ export default function Section({ id, n, label, children, bleed }: Props) {
   }, [])
 
   return (
-    <section className="section" id={id} ref={root} aria-labelledby={`${id}-label`}>
+    <section className="section" id={id} ref={root} aria-label={label}>
       <div className="shell section-grid">
         <div className="section-index pixel">
-          <div className="sticky">
-            <span className="num">[{n}]</span>
-            <span id={`${id}-label`}>{label}</span>
-          </div>
+          <div className="sticky" />
         </div>
         <div className="section-body">{children}</div>
         {bleed && <div className="section-bleed">{bleed}</div>}

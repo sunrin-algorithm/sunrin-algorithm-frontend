@@ -186,7 +186,7 @@ export default function Activities() {
   const lit = new Set(stack ?? [])
 
   return (
-    <Section id="activity" n="02" label="활동">
+    <Section id="activity" label="활동">
       <p className="activity-stack pixel">
         <span className={`dot${visited > 0 ? ' is-on' : ''}`} />
         {stack ? (
@@ -200,7 +200,6 @@ export default function Activities() {
           </>
         ) : (
           <>
-            <span className="key">visited</span>
             <span>
               {pad(visited)} / {pad(N)}
             </span>
@@ -261,7 +260,6 @@ export default function Activities() {
                 }`}
                 key={item.title}
                 onMouseEnter={() => setHover(id)}
-                onMouseLeave={() => setHover(null)}
               >
                 <p className="head pixel-mono">
                   <span className="visit">{pad(orderOf(id))}</span>

@@ -48,7 +48,6 @@ export default function About() {
   return (
     <Section
       id="about"
-      n="01"
       label="소개"
       bleed={
         <dl className="stats">

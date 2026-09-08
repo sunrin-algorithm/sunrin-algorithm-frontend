@@ -37,7 +37,7 @@ const SLOT_OF_GLYPH = ((order) => {
 /** Glyph cell size and gaps, in world px. Constant across every stage. */
 export const GW = 64
 export const GH = 84
-const GAP = 10
+const GAP = 0
 const WORD_GAP = 56
 const LEVEL_GAP = 220
 
@@ -107,21 +107,29 @@ export function rootGlyphCenter(g: number) {
 
 export type WorldEdge = { x1: number; y1: number; x2: number; y2: number }
 
-/** Leaf box -> its word's mid box. Static: only the drawn dash-offset animates. */
+/**
+ * Leaf box -> its word's mid box. Static: only the drawn dash-offset animates.
+ * Each leaf lands at its own x across the mid box's width (fanned out by its
+ * slot within the word) rather than all sharing one center point -- edges
+ * converging on the same pixel stack their strokes and read as one thick line.
+ */
 export function leafEdges(): WorldEdge[] {
   return leafOrder().map((g, slot) => {
     const a = leafBoxRect(slot)
-    const b = midBoxRect(g < WORD_A.length ? 0 : 1)
-    return { x1: a.x + a.w / 2, y1: a.y + a.h, x2: b.x + b.w / 2, y2: b.y }
+    const inA = g < WORD_A.length
+    const b = midBoxRect(inA ? 0 : 1)
+    const count = inA ? WORD_A.length : WORD_B.length
+    const local = inA ? slot : slot - WORD_A.length
+    return { x1: a.x + a.w / 2, y1: a.y + a.h, x2: b.x + (b.w * (local + 0.5)) / count, y2: b.y }
   })
 }
 
-/** Mid box -> root box. */
+/** Mid box -> root box, fanned across the root's width for the same reason. */
 export function midEdges(): WorldEdge[] {
   const root = rootBoxRect()
   return ([0, 1] as const).map((which) => {
     const a = midBoxRect(which)
-    return { x1: a.x + a.w / 2, y1: a.y + a.h, x2: root.x + root.w / 2, y2: root.y }
+    return { x1: a.x + a.w / 2, y1: a.y + a.h, x2: root.x + (root.w * (which + 0.5)) / 2, y2: root.y }
   })
 }
 

@@ -14,7 +14,7 @@ export default function Contact() {
 
   return (
     <>
-      <Section id="contact" n="05" label="연락">
+      <Section id="contact" label="연락">
         <p className="about-lead line">
           <span className="line-i">{CONTACT.lead}</span>
         </p>
@@ -36,11 +36,13 @@ export default function Contact() {
       </Section>
 
       <footer className="footer shell" ref={footer}>
-        <p className="footer-mark line" aria-hidden="true">
-          <span className="line-i">{FOOTER.mark}</span>
-        </p>
-        {/* masked so the logo inherits the theme's brand colour */}
-        <div className="logo-full" role="img" aria-label="SHARC 알고리즘연구부 로고" />
+        <div className="footer-lockup">
+          {/* masked so the logo inherits the theme's brand colour */}
+          <div className="logo-full" role="img" aria-label="SHARC 알고리즘연구부 로고" />
+          <p className="footer-mark line" aria-hidden="true">
+            <span className="line-i">{FOOTER.mark}</span>
+          </p>
+        </div>
         <div className="meta pixel">
           {FOOTER.lines.map((line) => (
             <span key={line}>{line}</span>

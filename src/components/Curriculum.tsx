@@ -40,12 +40,6 @@ const slot = (box: Rect, i: number): Rect => ({
   h: box.h,
 })
 
-/** The same colour at a given alpha, for dissolving the borders at the seams. */
-const withAlpha = (color: string, a: number) => {
-  const parts = color.match(/[\d.]+/g)
-  return parts ? `rgba(${parts.slice(0, 3).join(',')},${a})` : color
-}
-
 export default function Curriculum() {
   const table = useRef<HTMLDivElement>(null)
   const [fillProgress, setFillProgress] = useState(0)
@@ -79,7 +73,7 @@ export default function Curriculum() {
         it — the whole section, in other words, index included. */
     const veil = () => [
       ...sectionGrid.querySelectorAll<HTMLElement>('.section-index, .section-body'),
-      ...el.querySelectorAll<HTMLElement>('.dp-scroll, .dp-legend, .curriculum-note'),
+      ...el.querySelectorAll<HTMLElement>('.dp-scroll'),
     ]
     const setVeil = (o: string) => veil().forEach((n) => (n.style.opacity = o))
     // Everything the tree drew, which has to be gone before the cards move:
@@ -108,11 +102,13 @@ export default function Curriculum() {
       }
     }
 
-    // The card's own border is a faint hairline (--line at ~0.16 alpha) --
-    // fine at rest against the section's own bg, but the clone floats over
-    // #stage mid-scroll where that reads as no border at all. Bold it for
-    // the whole merge; only the inner seams still fade, down from this.
-    const edgeColor = withAlpha(getComputedStyle(cards[0]).borderTopColor, 0.9)
+    // --line is opaque now, so the clone's border reads fine floating over
+    // #stage as-is; only the inner seams fade, down to 0 width. Fading the
+    // colour's alpha instead left the inner border a different colour than
+    // the always-opaque top/bottom border, and a browser miters mismatched
+    // border colours into a visible diagonal split at the shared corner.
+    const edgeColor = getComputedStyle(cards[0]).borderTopColor
+    const edgeWidth = parseFloat(getComputedStyle(cards[0]).borderTopWidth) || 0
     let clones: HTMLElement[] = []
     let idxClone: HTMLElement | null = null
 
@@ -223,7 +219,13 @@ export default function Curriculum() {
               return cl
             })
           }
-          const src = cards.map(pinnedRect)
+          // Same y/h for all 4: the cards share one grid row and are meant to
+          // be identical there, but getBoundingClientRect gives each its own
+          // sub-pixel rounding -- lerping from 4 slightly different heights
+          // toward the same bar opened a triangular gap at the top/bottom
+          // border that closed only right as the merge finished.
+          const rawSrc = cards.map(pinnedRect)
+          const src = rawSrc.map((r) => ({ ...r, y: rawSrc[0].y, h: rawSrc[0].h }))
           const bar = centerRect(
             vw,
             vh,
@@ -260,9 +262,9 @@ export default function Curriculum() {
             })
             cl.style.borderColor = edgeColor
             // Four boxes have to read as one long rectangle once they touch, so
-            // the borders where they meet dissolve as the gaps close.
-            if (i > 0) cl.style.borderLeftColor = withAlpha(edgeColor, 1 - seam)
-            if (i < 3) cl.style.borderRightColor = withAlpha(edgeColor, 1 - seam)
+            // the borders where they meet shrink away as the gaps close.
+            if (i > 0) cl.style.borderLeftWidth = `${edgeWidth * (1 - seam)}px`
+            if (i < 3) cl.style.borderRightWidth = `${edgeWidth * (1 - seam)}px`
             cl.style.opacity = String(1 - gridFade)
           })
           setVeil(String(gridFade))
@@ -294,7 +296,6 @@ export default function Curriculum() {
   return (
     <Section
       id="curriculum"
-      n="03"
       label="커리큘럼"
       bleed={
         <div className="curriculum-table" ref={table}>
@@ -304,7 +305,6 @@ export default function Curriculum() {
             cells={CURRICULUM.cells}
             progress={fillProgress}
           />
-          <p className="curriculum-note">{CURRICULUM.note}</p>
         </div>
       }
     >
