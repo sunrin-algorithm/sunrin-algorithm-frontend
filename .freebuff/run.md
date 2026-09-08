@@ -30,6 +30,14 @@ stdout and stderr must go to two different files:
 powershell -NoProfile -Command "(Start-Process -FilePath 'npm.cmd' -ArgumentList 'run','dev','--','--port','5173','--strictPort','--host','127.0.0.1' -RedirectStandardOutput '<log>' -RedirectStandardError '<log>.err' -WindowStyle Hidden -PassThru).Id"
 ```
 
+`Start-Process` returns the pid of the **`npm.cmd` shim**, not of the Vite
+process that actually holds the port — registering the shim pid is rejected.
+Take the listener's pid instead, once the server answers:
+
+```
+powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort 5173 -State Listen | Select-Object OwningProcess"
+```
+
 If 5173 is taken, pass another free port to both `--port` and the URL you
 register; nothing in the config hardcodes it.
 
